@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "timesheet-backend"
+version = "0.1.0"
+description = "Timesheet web application backend — FastAPI + SQLAlchemy + MSSQL"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi==0.135.1",
+    "uvicorn[standard]==0.41.0",
+    "sqlalchemy==2.0.48",
+    "pyodbc==5.3.0",
+    "alembic==1.18.4",
+    "pydantic==2.12.5",
+    "pydantic-settings==2.13.1",
+    "reportlab==4.4.10",
+    "openpyxl==3.1.5",
+    "python-dotenv==1.2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.15.4",
+    "pyright==1.1.408",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+# =============================================================================
+# Ruff — linter + formatter
+# =============================================================================
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+# Enable a broad set of rules; specific ignores listed below
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "ANN", # flake8-annotations (enforce type hints)
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF", # Ruff-specific rules
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print (no bare print statements)
+    "PTH", # flake8-use-pathlib
+]
+ignore = [
+    "S101",    # allow assert in non-production code (tests)
+    "E501",    # line length is handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"cli.py" = ["T20"]  # CLI tool is allowed to use print
+# FastAPI Depends() in function defaults is the documented, recommended pattern.
+# B008 would require Annotated[Session, Depends(get_db)] instead – valid but
+# verbose; keeping the classic style here for readability.
+"app/routers/*.py" = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# =============================================================================
+# Pyright — strict type checking
+# =============================================================================
+[tool.pyright]
+pythonVersion = "3.14"
+pythonPlatform = "Windows"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+# Strict flags (all enabled by default in strict mode, listed for visibility)
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+reportUnknownVariableType = "error"
+reportUnknownMemberType = "error"
+reportUnknownArgumentType = "error"
+reportUnknownParameterType = "error"
+reportMissingParameterType = "error"
+reportReturnType = "error"
+reportUntypedFunctionDecorator = "warning"
