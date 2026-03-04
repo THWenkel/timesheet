@@ -25,7 +25,11 @@ import argparse
 import sys
 from pathlib import Path
 
-import pyodbc
+# pyodbc is a compiled C extension (pyodbc.cp3xx-win_amd64.pyd) with no Python
+# source and no official stubs on PyPI.  A minimal hand-written stub lives at
+# backend/stubs/pyodbc.pyi (used by CLI pyright and IDE auto-complete).
+# The ignore comment below silences both mypy and Pylance for this import.
+import pyodbc  # type: ignore[import-untyped]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants

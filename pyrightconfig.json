@@ -1,0 +1,34 @@
+{
+  // Pyright / Pylance configuration for the timesheet workspace.
+  // This file is read by both VS Code Pylance and the CLI pyright tool
+  // when run from the workspace root (c:\Develop\timesheet).
+  //
+  // The backend/ subdirectory has its own pyproject.toml [tool.pyright]
+  // section for CLI usage from inside backend/. This file ensures VS Code
+  // picks up the same settings by being at the workspace root.
+
+  "pythonVersion": "3.14",
+  "pythonPlatform": "Windows",
+  "typeCheckingMode": "strict",
+  "venvPath": "backend",
+  "venv": ".venv",
+
+  // Custom stubs for compiled C extensions that have no PyPI stubs (pyodbc)
+  "stubPath": "backend/stubs",
+
+  // Source roots: tell Pyright where to find "import app.*"
+  "include": ["backend/app", "backend/cli.py", "backend/alembic"],
+
+  // pyodbc, reportlab etc. are compiled C extensions — no source, no stubs
+  "reportMissingTypeStubs": "none",
+  "reportMissingModuleSource": "none",
+
+  // Keep all other strict checks active
+  "reportMissingImports": "error",
+  "reportUnknownVariableType": "error",
+  "reportUnknownMemberType": "error",
+  "reportUnknownArgumentType": "error",
+  "reportUnknownParameterType": "error",
+  "reportMissingParameterType": "error",
+  "reportReturnType": "error"
+}

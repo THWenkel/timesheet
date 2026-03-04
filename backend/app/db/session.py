@@ -21,11 +21,29 @@
 # =============================================================================
 
 from collections.abc import Generator
+from typing import Protocol
 
 from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
+
+# ---------------------------------------------------------------------------
+# Minimal DBAPI 2.0 protocols — used to type the SQLAlchemy event listener.
+# pyodbc (and any other DBAPI driver) satisfies these at runtime.
+# ---------------------------------------------------------------------------
+
+class _DBAPICursor(Protocol):
+    """Minimal DBAPI 2.0 cursor protocol."""
+
+    def execute(self, operation: str, /) -> object: ...
+    def close(self) -> None: ...
+
+
+class _DBAPIConnection(Protocol):
+    """Minimal DBAPI 2.0 connection protocol."""
+
+    def cursor(self) -> _DBAPICursor: ...
 
 
 def _build_connection_string() -> str:
@@ -89,7 +107,7 @@ def _create_engine() -> Engine:
     # targeting the correct database, even if the ODBC DSN defaults elsewhere.
     @event.listens_for(engine, "connect")
     def set_database(  # pyright: ignore[reportUnusedFunction]
-        dbapi_connection: object,
+        dbapi_connection: _DBAPIConnection,
         connection_record: object,
     ) -> None:
         """
@@ -98,9 +116,9 @@ def _create_engine() -> Engine:
         This guarantees that all queries run against WiTERP regardless of
         the default database configured on the SQL Server login.
         """
-        cursor = dbapi_connection.cursor()  # type: ignore[union-attr]
-        cursor.execute(f"USE [{settings.db_name}]")  # type: ignore[union-attr]
-        cursor.close()  # type: ignore[union-attr]
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f"USE [{settings.db_name}]")
+        cursor.close()
 
     return engine
 

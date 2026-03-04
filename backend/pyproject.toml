@@ -81,10 +81,16 @@ pythonPlatform = "Windows"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
+# Project-local stubs for packages that ship no .pyi files (e.g. pyodbc)
+stubPath = "stubs"
 
 # Strict flags (all enabled by default in strict mode, listed for visibility)
 reportMissingImports = "error"
-reportMissingTypeStubs = "warning"
+# pyodbc, reportlab and other compiled C extensions have no type stubs on PyPI.
+# Suppress both "no stubs" and "no source" diagnostics so they don't clutter
+# the Problems panel. Runtime behaviour is unaffected.
+reportMissingTypeStubs = "none"
+reportMissingModuleSource = "none"
 reportUnknownVariableType = "error"
 reportUnknownMemberType = "error"
 reportUnknownArgumentType = "error"
@@ -92,3 +98,20 @@ reportUnknownParameterType = "error"
 reportMissingParameterType = "error"
 reportReturnType = "error"
 reportUntypedFunctionDecorator = "warning"
+
+# =============================================================================
+# Mypy — secondary type checker (ms-python.mypy-type-checker VS Code extension)
+# =============================================================================
+[tool.mypy]
+python_version = "3.14"
+strict = true
+
+# Compiled C extensions and packages without PyPI stubs cannot be analysed by
+# mypy. Suppress the "Cannot find implementation" diagnostic per-module so that
+# all other strict checks remain active for first-party code.
+[[tool.mypy.overrides]]
+module = [
+    "pyodbc",
+    "reportlab.*",
+]
+ignore_missing_imports = true
