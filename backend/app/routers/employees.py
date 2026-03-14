@@ -48,7 +48,7 @@ def list_employees(
     stmt = select(Employee).order_by(Employee.lastname, Employee.surname)
     if not include_inactive:
         # Filter to only active employees for the frontend dropdown
-        stmt = stmt.where(Employee.is_active.is_(True))
+        stmt = stmt.where(Employee.is_active == True)  # noqa: E712 — must use == for SQL Server BIT compatibility
     rows = db.execute(stmt).scalars().all()
     return list(rows)
 
