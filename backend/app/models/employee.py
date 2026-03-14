@@ -11,12 +11,18 @@
 # on this table to track record management history.
 # =============================================================================
 
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.timesheet import TimesheetEntry
 
 
 class Employee(Base):
@@ -101,6 +107,8 @@ class Employee(Base):
     # -------------------------------------------------------------------------
     timesheet_entries: Mapped[list[TimesheetEntry]] = relationship(  # type: ignore[name-defined]
         "TimesheetEntry",
+        primaryjoin="TimesheetEntry.employee_id == Employee.id",
+        foreign_keys="[TimesheetEntry.employee_id]",
         back_populates="employee",
         cascade="all, delete-orphan",
         lazy="select",
@@ -122,7 +130,4 @@ class Employee(Base):
         return f"Employee(id={self.id!r}, surname={self.surname!r}, lastname={self.lastname!r})"
 
 
-# ---------------------------------------------------------------------------
-# Deferred import to resolve forward reference used in relationship()
-# ---------------------------------------------------------------------------
-from app.models.timesheet import TimesheetEntry  # noqa: E402
+

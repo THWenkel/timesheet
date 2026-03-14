@@ -133,8 +133,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 API available at: http://localhost:8000  
+
 OpenAPI schema: http://localhost:8000/openapi.json  
+
 Swagger UI: http://localhost:8000/docs  
+
 ReDoc: http://localhost:8000/redoc  
 
 ### Linting & Type Checking
@@ -164,7 +167,7 @@ cd backend
 .\.venv\Scripts\Activate.ps1
 
 # Run all pending SQL migration scripts (CLI tool)
-python cli.py migrate --password YOUR_SA_PASSWORD
+python cli.py --password YOUR_SA_PASSWORD migrate
 
 # Alembic: generate a new migration
 alembic revision --autogenerate -m "description"
@@ -179,6 +182,8 @@ alembic downgrade -1
 ---
 
 ## Frontend
+
+- user Frontend is built with React 19 + TypeScript strict mode
 
 ### Prerequisites
 
@@ -299,6 +304,7 @@ Time entries are stored as **integer minutes** (e.g. 90 = 1h 30m).
 ### Export
 
 Single endpoint `GET /api/export` with query parameters:
+
 - `format`: `csv` | `excel` | `pdf`
 - `employee_id`: integer
 - `from_date`: ISO date string
@@ -307,6 +313,7 @@ Single endpoint `GET /api/export` with query parameters:
 Returns a `StreamingResponse` with appropriate `Content-Disposition` header for browser download.
 
 ### Multi-User Design
+
 - All DB writes include `employee_id` FK to the `employees` table
 - Audit columns (`created_at`, `updated_at`, `created_by`, `updated_by`) on all entities
 - Architecture supports concurrent multi-user usage from day one

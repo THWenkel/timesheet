@@ -24,11 +24,4 @@ class Base(DeclarativeBase):
     """
 
 
-# Import all models here so that Alembic can detect them during autogenerate.
-# This avoids the common pitfall of Alembic not seeing models that were never
-# imported before calling metadata.create_all() / env.py.
-# (Imports are placed here at the bottom to avoid circular imports.)
-from app.models.employee import Employee  # noqa: E402
-from app.models.timesheet import TimesheetEntry  # noqa: E402
-
-__all__ = ["Base", "Employee", "TimesheetEntry"]
+__all__ = ["Base"]

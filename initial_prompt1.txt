@@ -1,0 +1,44 @@
+Hi Gru, thats how I will call you. Okay? 
+I want to create a new Webapp. Help me with that. However, do NOT start to plan in details. I will tell you various things that are important for me. Just listen. I will tell you when I am done. Then, and only then you start the planning phase. Sounds good?
+
+Build a skeleton for a small webapp with Python backend (>=3.14) and a React Frontend.
+
+# what is the web app being built for?
+the user will start in the frontend website and see a react-calender (npm package), a textbox to enter a value for time (hh:mm in 15 min steps) and to enter a free text on what the user has done on a specific date, selected by the react-calender and a save button. Over all on that, there is a field to select a user from a employees table in database. Employees are stored in a table named employees. Surname and Lastname are displayed in that list, but handled separate in the DB.
+In the database, a date time should be written to db for created, edited and wich user it was. 
+If the user is clicking on a specific date, the data is loaded and displayed in the textboxes (time and free text)
+The react-calender should show days in dark blue, if entries for that date exists in the database.
+
+## Backend
+store everything for backend in a folder named backend.
+Please carfully put comment blocks in code for every function and important step, to explain, what is done.
+* the data is stored in a Microsoft SQL 2012 Database, on a server called dbserver01. Use a none encrypted connection to that SQL server. 
+* Use the database WiTERP and use the SQL server authentication and user sa. Password can be given as a parameter for now. Make some notes in code, that this must be changed before going live
+* CLI tool for DB Maintenance, runs migration SQL scripts from a migrations folder.
+* use ORM, and comment well
+* WebAPI with FastAPI, needs to export to OpenAPI spec
+Use pyright strict, ruff everywhere, fully typed is important
+Create a new python environment and install all necessary libraries.
+
+## Frontend
+React with TypeScript strict, Vite, React Router. Use openapi-typescript to generate types from the API schema and openapi-fetch for API calls.
+Add vitest for unit tests. Proxy /api to the Python Backend so no CORS needed.
+Add prettier with a typical config.
+Once you have setup the project, use `npm` to ensure that the latest package versions are used.
+
+
+Write a AGENTS.md explaining the project structure and how to build/run/test everything
+
+When using tools to create folders, make sure that those tools do NOT create git repositories in subfolders.
+Add a meaningful .gitignore file to the project. It should fit to this mixed Python/TypeScript project. Do a `git status` at the end to verify that no unwanted files are under source control.
+
+Research current package versions on the web before starting, especially the MCP Python SDK API, and update everything.
+
+Once everything is done, test the project setup by adding "wrong" code (e.g. untyped Python and TypeScript code) and verify that linter, compiler, test work properly.
+
+## MCP Usage
+use following MCPs for testing:
+* context7
+* playwright for webtesting
+
+

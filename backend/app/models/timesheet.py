@@ -12,12 +12,18 @@
 #   - Audit columns track creation and modification with employee references.
 # =============================================================================
 
+from __future__ import annotations
+
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.employee import Employee
 
 
 class TimesheetEntry(Base):
@@ -122,7 +128,8 @@ class TimesheetEntry(Base):
     # -------------------------------------------------------------------------
     employee: Mapped[Employee] = relationship(  # type: ignore[name-defined]
         "Employee",
-        foreign_keys=[employee_id],
+        primaryjoin="TimesheetEntry.employee_id == Employee.id",
+        foreign_keys="[TimesheetEntry.employee_id]",
         back_populates="timesheet_entries",
         lazy="select",
     )
@@ -147,7 +154,4 @@ class TimesheetEntry(Base):
         )
 
 
-# ---------------------------------------------------------------------------
-# Deferred import to avoid circular import with employee.py
-# ---------------------------------------------------------------------------
-from app.models.employee import Employee  # noqa: E402
+

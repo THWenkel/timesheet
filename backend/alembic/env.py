@@ -19,8 +19,10 @@ from sqlalchemy import engine_from_config, pool
 # Import app settings to get the database URL
 from app.core.config import settings
 
-# Import Base with all models registered so Alembic can detect schema changes
+# Import Base and all models so Alembic can detect schema changes
 from app.db.base import Base
+from app.models import employee as _employee_models  # noqa: F401
+from app.models import timesheet as _timesheet_models  # noqa: F401
 from app.db.session import _build_connection_string
 
 # ---------------------------------------------------------------------------
