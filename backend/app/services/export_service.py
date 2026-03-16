@@ -71,7 +71,7 @@ def generate_csv(
     writer.writerow([])  # blank line separator
 
     # --- Data header ---
-    writer.writerow(["Date", "Duration (hh:mm)", "Duration (min)", "Description"])
+    writer.writerow(["Date", "Duration (hh:mm)", "Description"])
 
     # --- Data rows ---
     total_minutes = 0
@@ -79,7 +79,6 @@ def generate_csv(
         writer.writerow([
             entry.entry_date.isoformat(),
             entry.hours_display,
-            entry.minutes,
             entry.description,
         ])
         total_minutes += entry.minutes
@@ -89,7 +88,6 @@ def generate_csv(
     writer.writerow([
         "TOTAL",
         _minutes_to_display(total_minutes),
-        total_minutes,
         "",
     ])
 
@@ -145,7 +143,7 @@ def generate_excel(
     ws.append([])  # type: ignore[union-attr]  blank row
 
     # --- Column headers (row 5) ---
-    header_row = ["Date", "Duration (hh:mm)", "Duration (min)", "Description"]
+    header_row = ["Date", "Duration (hh:mm)", "Description"]
     ws.append(header_row)  # type: ignore[union-attr]
     header_row_idx = ws.max_row  # type: ignore[union-attr]
     for col_idx, _ in enumerate(header_row, start=1):
@@ -160,7 +158,6 @@ def generate_excel(
         row_data = [
             entry.entry_date.isoformat(),
             entry.hours_display,
-            entry.minutes,
             entry.description,
         ]
         ws.append(row_data)  # type: ignore[union-attr]
@@ -172,7 +169,7 @@ def generate_excel(
 
     # --- Totals row ---
     ws.append([])  # type: ignore[union-attr]  blank row
-    totals_row = ["TOTAL", _minutes_to_display(total_minutes), total_minutes, ""]
+    totals_row = ["TOTAL", _minutes_to_display(total_minutes), ""]
     ws.append(totals_row)  # type: ignore[union-attr]
     for col_idx in range(1, len(totals_row) + 1):
         cell = ws.cell(row=ws.max_row, column=col_idx)  # type: ignore[union-attr]
@@ -180,7 +177,7 @@ def generate_excel(
         cell.fill = total_fill
 
     # --- Column widths ---
-    column_widths = [14, 18, 16, 60]
+    column_widths = [14, 18, 60]
     for col_idx, width in enumerate(column_widths, start=1):
         ws.column_dimensions[get_column_letter(col_idx)].width = width  # type: ignore[union-attr]
 
@@ -248,7 +245,7 @@ def generate_pdf(
     # --- Table ---
     # Header row
     table_data: list[list[str]] = [
-        ["Date", "Duration (hh:mm)", "Duration (min)", "Description"],
+        ["Date", "Duration (hh:mm)", "Description"],
     ]
 
     total_minutes = 0
@@ -256,7 +253,6 @@ def generate_pdf(
         table_data.append([
             entry.entry_date.isoformat(),
             entry.hours_display,
-            str(entry.minutes),
             entry.description,
         ])
         total_minutes += entry.minutes
@@ -265,13 +261,12 @@ def generate_pdf(
     table_data.append([
         "TOTAL",
         _minutes_to_display(total_minutes),
-        str(total_minutes),
         "",
     ])
 
     # Available page width
     page_width = A4[0] - 4 * cm
-    col_widths = [3 * cm, 3.5 * cm, 3.5 * cm, page_width - 10 * cm]
+    col_widths = [3 * cm, 3.5 * cm, page_width - 6.5 * cm]
 
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
 

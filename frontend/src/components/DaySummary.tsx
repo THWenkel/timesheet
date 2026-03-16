@@ -40,6 +40,7 @@ export function DaySummary({ daySummary, isLoading }: DaySummaryProps): React.JS
   }
 
   const { entry_date, entries, total_minutes, total_display } = daySummary;
+  // total_minutes is used only for the conditional render guard below
 
   return (
     <div className="day-summary">
@@ -82,7 +83,7 @@ export function DaySummary({ daySummary, isLoading }: DaySummaryProps): React.JS
                   <strong>{total_display}</strong>
                 </td>
                 <td>
-                  <strong>Total ({total_minutes} min)</strong>
+                  <strong>Total</strong>
                 </td>
               </tr>
             </tfoot>

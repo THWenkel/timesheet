@@ -38,7 +38,7 @@ export function WeekSummary({ weekSummary, isLoading }: WeekSummaryProps): React
     );
   }
 
-  const { week_start, week_end, days, week_total_minutes, week_total_display } = weekSummary;
+  const { week_start, week_end, days, week_total_display } = weekSummary;
 
   return (
     <div className="week-summary">
@@ -99,12 +99,7 @@ export function WeekSummary({ weekSummary, isLoading }: WeekSummaryProps): React
               <strong>Week Total</strong>
             </td>
             <td className="week-summary__duration">
-              <strong>
-                {week_total_display}
-                {week_total_minutes > 0 && (
-                  <span className="week-summary__minutes"> ({week_total_minutes} min)</span>
-                )}
-              </strong>
+              <strong>{week_total_display}</strong>
             </td>
           </tr>
         </tfoot>
