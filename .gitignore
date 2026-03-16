@@ -136,3 +136,4 @@ pnpm-debug.log*
 *.bak
 *.tmp
 *.temp
+.playwright-mcp/timesheet-Thomas-Wenkel-2026-03-01-2026-03-16.pdf
