@@ -471,10 +471,10 @@ tfoot td {
   align-items: center;
 }
 
-.export-panel__radio-label {
+.export-panel__format-option {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.625rem; /* ~10px between radio button and label text */
   font-size: 0.9rem;
   cursor: pointer;
   font-weight: 400; /* override label bold */

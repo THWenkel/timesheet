@@ -187,6 +187,130 @@ def generate_excel(
     return buffer.getvalue()
 
 
+# =============================================================================
+# PDF helpers — digital signature field support
+# =============================================================================
+
+def _make_sig_capture_flowable(
+    Flowable: type,  # noqa: N803  — passed in after reportlab is imported
+    label: str,
+    height: float,
+    label_style: object,
+    out: list[tuple[int, float, float, float, float]],
+) -> object:
+    """
+    Dynamically create and return a reportlab Flowable subclass instance that:
+      1. Draws the label text at the bottom of the allocated cell area.
+      2. Records its exact absolute page position via canvas.absolutePosition()
+         so that a /Sig AcroForm widget can be added afterwards via pypdf.
+
+    The class is defined here (not at module level) so that the reportlab
+    Flowable base class is available at definition time — following the same
+    deferred-import pattern used throughout this module.
+    """
+    from reportlab.platypus import Paragraph  # noqa: PLC0415
+
+    class _SigCapture(Flowable):  # type: ignore[valid-type, misc]
+        def __init__(self) -> None:
+            super().__init__()  # type: ignore[misc]
+            self.width: float = 0.0
+            self.height: float = height
+
+        def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:  # noqa: ARG002
+            self.width = avail_width
+            return avail_width, self.height
+
+        def draw(self) -> None:
+            # Capture absolute page position of this cell's bottom-left corner
+            pos = self.canv.absolutePosition(0.0, 0.0)  # type: ignore[attr-defined]
+            out.append((
+                int(self.canv.getPageNumber()),  # type: ignore[attr-defined]
+                float(pos[0]),  # type: ignore[index]
+                float(pos[1]),  # type: ignore[index]
+                float(self.width),
+                float(self.height),
+            ))
+            # Draw the label at the bottom of the cell
+            p = Paragraph(label, label_style)  # type: ignore[arg-type]
+            p.wrap(self.width, self.height)
+            p.drawOn(self.canv, 0, 2)  # type: ignore[arg-type]  # 2 pt from bottom
+
+    return _SigCapture()
+
+
+
+def _add_sig_widget(
+    pdf_bytes: bytes,
+    name: str,
+    page_number: int,
+    rect: tuple[float, float, float, float],
+) -> bytes:
+    """
+    Post-process an existing PDF (bytes) and embed an interactive AcroForm
+    digital-signature field (/Sig) at the given rectangle on the given page.
+
+    Args:
+        pdf_bytes:   Source PDF as raw bytes.
+        name:        Internal field name (no spaces).
+        page_number: 1-indexed page number.
+        rect:        (x1, y1, x2, y2) in PDF page coordinates (origin bottom-left).
+
+    Returns:
+        Modified PDF bytes with the /Sig widget annotation added.
+    """
+    from pypdf import PdfWriter
+    from pypdf.generic import (
+        ArrayObject,
+        DictionaryObject,
+        NameObject,
+        NumberObject,
+        TextStringObject,
+    )
+
+    writer = PdfWriter(clone_from=io.BytesIO(pdf_bytes))
+    page = writer.pages[page_number - 1]
+
+    # Build the widget annotation dictionary for a /Sig field
+    sig_widget = DictionaryObject({
+        NameObject("/Type"): NameObject("/Annot"),
+        NameObject("/Subtype"): NameObject("/Widget"),
+        NameObject("/FT"): NameObject("/Sig"),
+        NameObject("/T"): TextStringObject(name),
+        NameObject("/Rect"): ArrayObject([
+            NumberObject(round(rect[0], 3)),
+            NumberObject(round(rect[1], 3)),
+            NumberObject(round(rect[2], 3)),
+            NumberObject(round(rect[3], 3)),
+        ]),
+        NameObject("/F"): NumberObject(4),   # print flag
+        NameObject("/DR"): DictionaryObject(),
+    })
+    sig_ref = writer._add_object(sig_widget)  # type: ignore[attr-defined]
+
+    # Link back-reference from annotation to page
+    sig_widget[NameObject("/P")] = page.indirect_reference  # type: ignore[assignment]
+
+    # Add widget to page /Annots array
+    if "/Annots" not in page:
+        page[NameObject("/Annots")] = ArrayObject()
+    page[NameObject("/Annots")].append(sig_ref)  # type: ignore[union-attr]
+
+    # Ensure the document's AcroForm exists and register the field
+    catalog = writer._root_object  # type: ignore[attr-defined]
+    if NameObject("/AcroForm") not in catalog:
+        catalog[NameObject("/AcroForm")] = DictionaryObject()
+    acroform: DictionaryObject = catalog[NameObject("/AcroForm")]  # type: ignore[assignment]
+    if NameObject("/Fields") not in acroform:
+        acroform[NameObject("/Fields")] = ArrayObject()
+    acroform[NameObject("/Fields")].append(sig_ref)  # type: ignore[union-attr]
+    # SigFlags=3: AppendOnly (bit 2) + SignaturesExist (bit 1) — tells readers this doc has sig fields
+    acroform[NameObject("/SigFlags")] = NumberObject(3)
+
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
 def generate_pdf(
     entries: list[TimesheetEntryRead],
     employee_name: str,
@@ -214,9 +338,9 @@ def generate_pdf(
     # Import here to avoid loading reportlab unless a PDF export is requested
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     buffer = io.BytesIO()
 
@@ -233,6 +357,14 @@ def generate_pdf(
     styles = getSampleStyleSheet()
     elements: list[object] = []
 
+    # Style for description cells — enables word wrapping at font size 9
+    cell_style = ParagraphStyle(
+        "CellStyle",
+        parent=styles["Normal"],
+        fontSize=9,
+        leading=11,
+    )
+
     # --- Title ---
     elements.append(Paragraph("Timesheet Export", styles["Title"]))
     elements.append(Spacer(1, 0.3 * cm))
@@ -243,8 +375,8 @@ def generate_pdf(
     elements.append(Spacer(1, 0.5 * cm))
 
     # --- Table ---
-    # Header row
-    table_data: list[list[str]] = [
+    # Header row — plain strings are fine here (no wrapping needed)
+    table_data: list[list[str | Paragraph]] = [
         ["Date", "Duration (hh:mm)", "Description"],
     ]
 
@@ -253,7 +385,7 @@ def generate_pdf(
         table_data.append([
             entry.entry_date.isoformat(),
             entry.hours_display,
-            entry.description,
+            Paragraph(entry.description, cell_style),  # Paragraph enables word wrap
         ])
         total_minutes += entry.minutes
 
@@ -298,6 +430,58 @@ def generate_pdf(
     table.setStyle(TableStyle(table_style_commands))  # type: ignore[arg-type]
     elements.append(table)
 
+    # --- Signature section ---
+    # Gap + two-column layout: Datum (left) | gap | Unterschrift Kunde (right, digital sig)
+    elements.append(Spacer(1, 1.5 * cm))
+
+    sig_label_style = ParagraphStyle(
+        "SigLabel",
+        parent=styles["Normal"],
+        fontSize=9,
+        textColor=colors.HexColor("#555555"),
+    )
+
+    sig_height = 1.2 * cm          # height of the signature row
+    gap_width = 1.0 * cm           # space between the two fields
+    page_width = A4[0] - 4 * cm    # available width (same as table)
+    sig_col_width = (page_width - gap_width) / 2
+
+    # Capture list — the _SigCapture flowable appends its abs position here during draw()
+    sig_positions: list[tuple[int, float, float, float, float]] = []
+
+    sig_data: list[list[object]] = [[
+        Paragraph("Datum", sig_label_style),
+        "",   # gap column — no border, no content
+        _make_sig_capture_flowable(Flowable, "Unterschrift Kunde", sig_height, sig_label_style, sig_positions),
+    ]]
+    sig_table = Table(
+        sig_data,
+        colWidths=[sig_col_width, gap_width, sig_col_width],
+        rowHeights=[sig_height],
+    )
+    sig_table.setStyle(TableStyle([
+        ("LINEABOVE", (0, 0), (0, 0), 0.75, colors.black),   # line above "Datum"
+        ("LINEABOVE", (2, 0), (2, 0), 0.75, colors.black),   # line above "Unterschrift Kunde"
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+    ]))
+    elements.append(sig_table)
+
     # --- Build ---
     doc.build(elements)  # type: ignore[arg-type]
-    return buffer.getvalue()
+    pdf_bytes = buffer.getvalue()
+
+    # --- Post-process: add interactive /Sig AcroForm field ---
+    if sig_positions:
+        page_no, abs_x, abs_y, field_w, field_h = sig_positions[0]
+        pdf_bytes = _add_sig_widget(
+            pdf_bytes,
+            name="Unterschrift_Kunde",
+            page_number=page_no,
+            rect=(abs_x, abs_y, abs_x + field_w, abs_y + field_h),
+        )
+
+    return pdf_bytes
