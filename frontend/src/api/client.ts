@@ -18,9 +18,9 @@
 //     body: { employee_id: 1, entry_date: '2026-03-04', minutes: 480 }
 //   })
 //
-// The base URL is empty ('') because all /api/* requests are proxied to the
-// backend by Vite's dev server proxy. In production, the same proxy logic
-// should be handled by a reverse proxy (nginx, etc.).
+// The base URL is read from the VITE_API_URL environment variable (.env).
+// In development, requests go directly to that URL (CORS is enabled on the backend).
+// If VITE_API_URL is not set, the empty string fallback relies on Vite's dev proxy.
 // =============================================================================
 
 import createClient from "openapi-fetch";
@@ -36,6 +36,6 @@ import type { paths } from "./generated";
  * Regenerate after backend changes: npm run generate-api
  */
 export const apiClient = createClient<paths>({
-  // Base URL is empty — /api/* requests are handled by Vite's proxy
-  baseUrl: "",
+  // Base URL from .env VITE_API_URL — falls back to '' (Vite proxy) if not set
+  baseUrl: import.meta.env.VITE_API_URL ?? "",
 });

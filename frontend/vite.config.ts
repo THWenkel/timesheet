@@ -11,39 +11,45 @@
 //     no CORS configuration needed on the backend for local development.
 // =============================================================================
 
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd());
+  const apiUrl = env.VITE_API_URL || "http://localhost:8000";
 
-  resolve: {
-    alias: {
-      // @/ maps to src/ — allows imports like: import { client } from '@/api/client'
-      "@": resolve(__dirname, "src"),
-    },
-  },
+  return {
+    plugins: [react()],
 
-  server: {
-    port: 5173,
-
-    proxy: {
-      // All requests to /api/* are proxied to the FastAPI backend on port 8000.
-      // This eliminates CORS issues during development — the browser sees all
-      // traffic as coming from localhost:5173.
-      "/api": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        // No rewrite needed — backend routes are also prefixed with /api
+    resolve: {
+      alias: {
+        // @/ maps to src/ — allows imports like: import { client } from '@/api/client'
+        "@": resolve(__dirname, "src"),
       },
     },
-  },
 
-  build: {
-    // Target modern browsers — adjust if older browser support is needed
-    target: "es2022",
-    outDir: "dist",
-    sourcemap: true,
-  },
+    server: {
+      port: 5173,
+
+      proxy: {
+        // All requests to /api/* are proxied to the FastAPI backend.
+        // Target is read from VITE_API_URL in .env (fallback: http://localhost:8000).
+        // This eliminates CORS issues during development — the browser sees all
+        // traffic as coming from localhost:5173.
+        "/api": {
+          target: apiUrl,
+          changeOrigin: true,
+          // No rewrite needed — backend routes are also prefixed with /api
+        },
+      },
+    },
+
+    build: {
+      // Target modern browsers — adjust if older browser support is needed
+      target: "es2022",
+      outDir: "dist",
+      sourcemap: true,
+    },
+  };
 });
