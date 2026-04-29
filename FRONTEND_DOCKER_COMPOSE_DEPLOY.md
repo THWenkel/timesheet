@@ -11,7 +11,7 @@ Frontend (nginx), Backend (Python/Gunicorn) und Datenbank (PostgreSQL).
 
 ## Architekturüberblick
 
-```
+``` structure
 Browser
     │
     ▼
@@ -66,7 +66,7 @@ docker compose version
 
 Folgende Dateien werden zusätzlich zum bestehenden Projekt angelegt:
 
-```
+``` structure
 timesheet/
 ├── Dockerfile.backend          ← Backend-Container
 ├── Dockerfile.frontend         ← Frontend-Container (multi-stage build)
@@ -351,7 +351,7 @@ docker compose ps
 
 Erwartete Ausgabe (alle Container `running`):
 
-```
+``` structure
 NAME                    STATUS          PORTS
 timesheet-frontend-1    Up (healthy)    0.0.0.0:80->80/tcp
 timesheet-backend-1     Up (healthy)
@@ -503,7 +503,7 @@ DB_ENCRYPT=no
 
 Nach Abschluss liegen folgende neue Dateien im Projekt:
 
-```
+``` structure
 timesheet/
 ├── Dockerfile.backend
 ├── Dockerfile.frontend
@@ -515,7 +515,7 @@ timesheet/
 
 Stelle sicher, dass `backend/.env.docker` in `.gitignore` eingetragen ist:
 
-```
+``` comment
 # In .gitignore hinzufügen:
 backend/.env.docker
 ```
@@ -524,7 +524,7 @@ backend/.env.docker
 
 ## Test-Checkliste
 
-```
+``` todo list
 [ ] docker compose ps  →  alle 3 Container "Up (healthy)"
 [ ] docker compose logs backend  →  kein Fehler, gunicorn gestartet
 [ ] http://localhost/ lädt die React-Anwendung

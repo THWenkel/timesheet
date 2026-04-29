@@ -9,7 +9,7 @@ IIS-Website `intranet.wenkel.local` (Port 80) einzubinden.
 
 ## Architekturüberblick
 
-```
+``` structure
 Browser im Intranet
         │
         ▼
@@ -280,6 +280,7 @@ New-WebApplication `
 ```
 
 Oder im **IIS-Manager** manuell:
+
 1. Website `intranet.wenkel.local` aufklappen
 2. Rechtsklick → **Anwendung hinzufügen**
 3. Alias: `timesheet`
@@ -410,6 +411,7 @@ Falls im Intranet eine Windows-Zertifizierungsstelle (AD CS) vorhanden ist:
 ```
 
 7. Nach HTTPS-Umstellung: CORS in `backend\app\main.py` anpassen:
+
    ```python
    allow_origins=["https://intranet.wenkel.local"],
    ```
@@ -447,7 +449,7 @@ python cli.py --password DEIN_PASSWORT migrate
 
 Nach Abschluss aller Schritte folgendes überprüfen:
 
-```
+``` todo list
 [ ] http://localhost:8000/health gibt {"status":"ok","database":"ok"} zurück
 [ ] Windows-Dienst "TimesheetBackend" hat Status "Running" (services.msc)
 [ ] http://intranet.wenkel.local/timesheet/ lädt die React-Anwendung im Browser

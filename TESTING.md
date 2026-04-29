@@ -60,10 +60,12 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 ### TC-01 — Page loads and employee dropdown is populated
 
 **Steps:**
+
 1. Open `http://localhost:5173/`
 2. Wait for the employee dropdown to load (≤ 2 seconds)
 
 **Expected:**
+
 - Page title = "Timesheet"
 - Dropdown contains the option "Thomas Wenkel"
 - Dropdown shows "— Select employee —" as default (nothing selected)
@@ -74,10 +76,12 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 ### TC-02 — Select employee and date, form appears in create mode
 
 **Steps:**
+
 1. Select "Thomas Wenkel" from the dropdown
 2. Click on **28. April 2026** in the calendar
 
 **Expected:**
+
 - Heading "Dienstag, 28. April 2026" appears above the form
 - Duration picker is visible and defaults to `01:00`
 - Description field is empty
@@ -91,10 +95,12 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 ### TC-03 — Entry row is clickable and shows pointer cursor
 
 **Steps:**
+
 1. (After TC-02) Look at the entry table below the form
 2. Hover over the entry row "08:00 div. Calls, and BUGFIXING"
 
 **Expected:**
+
 - Row cursor changes to pointer on hover
 - Row shows a subtle blue-grey hover background
 
@@ -103,9 +109,11 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 ### TC-04 — Clicking an entry row loads data into the form
 
 **Steps:**
+
 1. Click the entry row "08:00 div. Calls, and BUGFIXING"
 
 **Expected:**
+
 - Duration picker changes to **08:00** (value = 480 minutes)
 - Description field shows **"div. Calls, and BUGFIXING"**
 - The clicked row gets a **blue highlight** (`background-color: #dbeafe`, blue outline)
@@ -119,6 +127,7 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 ### TC-05 — Update Entry saves the changes to the API
 
 **Steps:**
+
 1. (After TC-04 — entry is loaded in form)
 2. Change duration to **07:30** (450 minutes)
 3. Change description to **"div. Calls, Meetings and BUGFIXING"**
@@ -126,6 +135,7 @@ Expected: one entry with `minutes: 480`, `description: "div. Calls, and BUGFIXIN
 5. Wait for the save to complete
 
 **Expected:**
+
 - Green success message: **"Entry updated successfully!"**
 - Edit banner disappears
 - Cancel button disappears; button label returns to "Save Entry"
@@ -148,11 +158,13 @@ Expected: `minutes: 450`, `description: "div. Calls, Meetings and BUGFIXING"`, `
 ### TC-06 — Cancel discards changes and resets the form
 
 **Steps:**
+
 1. Click the entry row to enter edit mode
 2. Change duration to **02:00** (do NOT save)
 3. Click **"Cancel"**
 
 **Expected:**
+
 - Edit banner disappears
 - Button label returns to **"Save Entry"**
 - Cancel button disappears
@@ -166,11 +178,13 @@ Expected: `minutes: 450`, `description: "div. Calls, Meetings and BUGFIXING"`, `
 ### TC-07 — Selecting a different date clears edit mode (no stale data)
 
 **Steps:**
+
 1. Click the entry row on 28.04 to enter edit mode
 2. Verify the amber edit banner is visible
 3. Click on **27. April 2026** in the calendar
 
 **Expected:**
+
 - Edit mode immediately clears
 - No amber edit banner
 - Button label is **"Save Entry"**
@@ -183,6 +197,7 @@ Expected: `minutes: 450`, `description: "div. Calls, Meetings and BUGFIXING"`, `
 ### TC-08 — Creating a new entry (existing flow unchanged)
 
 **Steps:**
+
 1. Click a date with **no existing entries** (e.g., 25. April 2026)
 2. Verify "No entries for this day." message appears
 3. Set duration to **04:00** (240 minutes)
@@ -190,6 +205,7 @@ Expected: `minutes: 450`, `description: "div. Calls, Meetings and BUGFIXING"`, `
 5. Click **"Save Entry"**
 
 **Expected:**
+
 - Green success message: **"Entry saved successfully!"** (not "updated")
 - No edit banner at any point
 - Duration resets to `01:00`, description clears
@@ -219,13 +235,13 @@ Invoke-RestMethod -Uri "http://localhost:8000/api/timesheets/68" -Method PUT -Co
 
 ## Test Results (28.04.2026 run)
 
-| TC   | Description                        | Result |
-|------|------------------------------------|--------|
-| TC-01 | Page loads, dropdown populated    | ✅ PASS |
-| TC-02 | Select employee + date, create mode | ✅ PASS |
-| TC-03 | Entry row has pointer cursor       | ✅ PASS |
-| TC-04 | Click row loads data + edit mode   | ✅ PASS |
-| TC-05 | Update Entry saves to API          | ✅ PASS |
-| TC-06 | Cancel resets form, no API call    | ✅ PASS |
-| TC-07 | Date change clears edit mode       | ✅ PASS |
-| TC-08 | Create new entry (unchanged flow)  | ✅ PASS |
+| TC    | Description                        | Result   |
+|------ |------------------------------------|----------|
+| TC-01 | Page loads, dropdown populated     | ✅ PASS  |
+| TC-02 | Select employee + date, create mode| ✅ PASS  |
+| TC-03 | Entry row has pointer cursor       | ✅ PASS  |
+| TC-04 | Click row loads data + edit mode   | ✅ PASS  |
+| TC-05 | Update Entry saves to API          | ✅ PASS  |
+| TC-06 | Cancel resets form, no API call    | ✅ PASS  |
+| TC-07 | Date change clears edit mode       | ✅ PASS  |
+| TC-08 | Create new entry (unchanged flow)  | ✅ PASS  |

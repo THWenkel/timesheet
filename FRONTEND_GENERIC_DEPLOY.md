@@ -4,6 +4,7 @@ Schritt-für-Schritt-Anleitung für den Betrieb der Timesheet-Applikation
 auf einem Linux-Server (Ubuntu 22.04 LTS oder Debian 12).
 
 Zwei Varianten werden beschrieben:
+
 - **Variante A**: nginx (empfohlen — einfacher, performanter)
 - **Variante B**: Apache (falls bereits im Einsatz)
 
@@ -13,7 +14,7 @@ Außerdem: PostgreSQL als Alternative zu Microsoft SQL Server.
 
 ## Architekturüberblick
 
-```
+``` structure
 Browser
     │
     ▼
@@ -234,7 +235,7 @@ sudo nano /etc/logrotate.d/timesheet
 
 Inhalt:
 
-```
+``` structure
 /var/log/timesheet/*.log {
     daily
     missingok
@@ -509,7 +510,7 @@ alembic upgrade head
 
 ## Test-Checkliste
 
-```
+``` todo list
 [ ] sudo systemctl status timesheet-backend  →  "active (running)"
 [ ] curl http://localhost:8000/health  →  {"status":"ok","database":"ok"}
 [ ] http://timesheet.deinefirma.de/ lädt die React-Anwendung
