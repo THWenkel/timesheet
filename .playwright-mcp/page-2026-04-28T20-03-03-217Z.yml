@@ -1,0 +1,80 @@
+- main [ref=e3]:
+  - heading "Timesheet" [level=1] [ref=e4]
+  - generic [ref=e6]:
+    - strong [ref=e8]: Employee
+    - combobox "Select employee" [disabled] [ref=e9]:
+      - option "Loading employees…" [disabled] [selected]
+  - generic [ref=e10]:
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - button "«" [ref=e15] [cursor=pointer]
+        - button "‹" [ref=e16] [cursor=pointer]
+        - button "April 2026" [ref=e17] [cursor=pointer]
+        - button "›" [ref=e18] [cursor=pointer]
+        - button "»" [ref=e19] [cursor=pointer]
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: Mo
+          - generic [ref=e26]: Di
+          - generic [ref=e27]: Mi
+          - generic [ref=e28]: Do
+          - generic [ref=e29]: Fr
+          - generic [ref=e30]: Sa
+          - generic [ref=e31]: So
+        - generic [ref=e32]:
+          - button "30. März 2026" [ref=e33] [cursor=pointer]: "30"
+          - button "31. März 2026" [ref=e34] [cursor=pointer]: "31"
+          - button "1. April 2026" [ref=e35] [cursor=pointer]: "1"
+          - button "2. April 2026" [ref=e36] [cursor=pointer]: "2"
+          - button "3. April 2026" [ref=e37] [cursor=pointer]: "3"
+          - button "4. April 2026" [ref=e38] [cursor=pointer]: "4"
+          - button "5. April 2026" [ref=e39] [cursor=pointer]: "5"
+          - button "6. April 2026" [ref=e40] [cursor=pointer]: "6"
+          - button "7. April 2026" [ref=e41] [cursor=pointer]: "7"
+          - button "8. April 2026" [ref=e42] [cursor=pointer]: "8"
+          - button "9. April 2026" [ref=e43] [cursor=pointer]: "9"
+          - button "10. April 2026" [ref=e44] [cursor=pointer]: "10"
+          - button "11. April 2026" [ref=e45] [cursor=pointer]: "11"
+          - button "12. April 2026" [ref=e46] [cursor=pointer]: "12"
+          - button "13. April 2026" [ref=e47] [cursor=pointer]: "13"
+          - button "14. April 2026" [ref=e48] [cursor=pointer]: "14"
+          - button "15. April 2026" [ref=e49] [cursor=pointer]: "15"
+          - button "16. April 2026" [ref=e50] [cursor=pointer]: "16"
+          - button "17. April 2026" [ref=e51] [cursor=pointer]: "17"
+          - button "18. April 2026" [ref=e52] [cursor=pointer]: "18"
+          - button "19. April 2026" [ref=e53] [cursor=pointer]: "19"
+          - button "20. April 2026" [ref=e54] [cursor=pointer]: "20"
+          - button "21. April 2026" [ref=e55] [cursor=pointer]: "21"
+          - button "22. April 2026" [ref=e56] [cursor=pointer]: "22"
+          - button "23. April 2026" [ref=e57] [cursor=pointer]: "23"
+          - button "24. April 2026" [ref=e58] [cursor=pointer]: "24"
+          - button "25. April 2026" [ref=e59] [cursor=pointer]: "25"
+          - button "26. April 2026" [ref=e60] [cursor=pointer]: "26"
+          - button "27. April 2026" [ref=e61] [cursor=pointer]: "27"
+          - button "28. April 2026" [ref=e62] [cursor=pointer]: "28"
+          - button "29. April 2026" [ref=e63] [cursor=pointer]: "29"
+          - button "30. April 2026" [ref=e64] [cursor=pointer]: "30"
+          - button "1. Mai 2026" [ref=e65] [cursor=pointer]: "1"
+          - button "2. Mai 2026" [ref=e66] [cursor=pointer]: "2"
+          - button "3. Mai 2026" [ref=e67] [cursor=pointer]: "3"
+    - paragraph [ref=e69]: Select an employee above, then pick a date in the calendar.
+  - generic [ref=e71]:
+    - heading "Export" [level=3] [ref=e72]
+    - paragraph [ref=e73]: Please select an employee to enable export.
+    - group "Format" [ref=e74]:
+      - generic [ref=e75]: Format
+      - generic [ref=e76] [cursor=pointer]:
+        - radio "CSV" [disabled] [ref=e77]
+        - text: CSV
+      - generic [ref=e78] [cursor=pointer]:
+        - radio "Excel (.xlsx)" [disabled] [ref=e79]
+        - text: Excel (.xlsx)
+      - generic [ref=e80] [cursor=pointer]:
+        - radio "PDF (A4 table)" [checked] [disabled] [ref=e81]
+        - text: PDF (A4 table)
+    - generic [ref=e82]:
+      - generic [ref=e83]: From
+      - textbox "From" [disabled] [ref=e84]: 2026-04-01
+      - generic [ref=e85]: To
+      - textbox "To" [disabled] [ref=e86]: 2026-04-28
+    - button "Download" [disabled] [ref=e87]

@@ -252,13 +252,48 @@ tfoot td {
   border-radius: 6px;
   font-size: 0.9375rem;
   font-weight: 600;
-  margin-top: 0.75rem;
-  margin-bottom: 1.25rem;
   transition: background-color 0.15s ease-in-out;
 }
 
 .home-page__save-btn:hover:not(:disabled) {
   background-color: #153e6f;
+}
+
+.home-page__cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.25rem;
+  background-color: transparent;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.home-page__cancel-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.home-page__btn-group {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.home-page__edit-banner {
+  font-size: 0.875rem;
+  color: #92400e;
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .home-page__no-date-hint {
@@ -426,7 +461,20 @@ tfoot td {
   font-size: 0.875rem;
   padding: 0.5rem 0;
 }
+.day-summary__row--clickable {
+  cursor: pointer;
+  transition: background-color 0.1s ease-in-out;
+}
 
+.day-summary__row--clickable:hover {
+  background-color: #f0f4fa;
+}
+
+.day-summary__row--editing {
+  background-color: #dbeafe;
+  outline: 2px solid #1b4f8a;
+  outline-offset: -2px;
+}
 /* ── WeekSummary ──────────────────────────────────────────────────────────── */
 
 .week-summary {

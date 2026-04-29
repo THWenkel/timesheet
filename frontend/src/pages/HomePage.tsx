@@ -29,11 +29,13 @@ import {
   useCalendarDates,
   useCreateEntry,
   useDaySummary,
+  useUpdateEntry,
   useWeekSummary,
 } from "@/hooks/useTimesheetEntries";
 import { toISODateString, validateDailyLimit } from "@/utils/timeUtils";
 
 type EmployeeListItem = components["schemas"]["EmployeeListItem"];
+type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
 
 /**
  * Main timesheet page.
@@ -59,6 +61,11 @@ export function HomePage(): React.JSX.Element {
   const [description, setDescription] = useState<string>("");
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
+  // --- Edit mode: null = create mode, non-null = editing an existing entry ---
+  const [editingEntry, setEditingEntry] = useState<TimesheetEntryRead | null>(null);
+  // Track what kind of save just happened for the success message
+  const [lastSaveWasUpdate, setLastSaveWasUpdate] = useState<boolean>(false);
+
   // --- API hooks ---
   const {
     datesWithEntries,
@@ -78,24 +85,33 @@ export function HomePage(): React.JSX.Element {
   } = useWeekSummary(selectedEmployee?.id ?? null, selectedDate);
 
   const { createEntry, isSubmitting, error: saveError } = useCreateEntry();
+  const { updateEntry, isSubmitting: isUpdating, error: updateError } = useUpdateEntry();
 
   // --- Validation ---
-  // Calculate how many minutes are already logged for the selected day
-  // (from the day summary — excludes the current form value)
+  // In create mode: all logged minutes count toward the limit.
+  // In edit mode: subtract the editing entry’s original minutes so we
+  // only count the “other” entries when validating the new value.
   const existingDayMinutes = daySummary?.total_minutes ?? 0;
-  const dailyLimitError = validateDailyLimit(existingDayMinutes, minutes);
+  const otherDayMinutes =
+    editingEntry !== null ? existingDayMinutes - editingEntry.minutes : existingDayMinutes;
+  const dailyLimitError = validateDailyLimit(otherDayMinutes, minutes);
 
   // --- Handlers ---
 
   const handleEmployeeSelect = (employee: EmployeeListItem): void => {
     setSelectedEmployee(employee);
-    setSelectedDate(null); // Reset date selection when changing employee
+    setSelectedDate(null);
+    setEditingEntry(null);
+    setMinutes(60);
+    setDescription("");
     setSaveSuccess(false);
   };
 
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
+    setEditingEntry(null);
     setSaveSuccess(false);
+    setLastSaveWasUpdate(false);
     // Reset form to defaults for the new date
     setMinutes(60);
     setDescription("");
@@ -106,30 +122,62 @@ export function HomePage(): React.JSX.Element {
     setCalendarMonth(month);
   };
 
+  const handleEditEntry = (entry: TimesheetEntryRead): void => {
+    setEditingEntry(entry);
+    setMinutes(entry.minutes);
+    setDescription(entry.description);
+    setSaveSuccess(false);
+  };
+
+  const handleCancelEdit = (): void => {
+    setEditingEntry(null);
+    setMinutes(60);
+    setDescription("");
+    setSaveSuccess(false);
+    setLastSaveWasUpdate(false);
+  };
+
   const handleSave = async (): Promise<void> => {
     if (selectedEmployee === null || selectedDate === null) return;
     if (dailyLimitError !== null) return;
 
-    const success = await createEntry({
-      employee_id: selectedEmployee.id,
-      entry_date: toISODateString(selectedDate),
-      minutes,
-      description,
-    });
-
-    if (success) {
-      setSaveSuccess(true);
-      setMinutes(60);
-      setDescription("");
-      // Refresh calendar highlighting and summaries
-      refetchCalendar();
-      refetchDay();
-      refetchWeek();
+    if (editingEntry !== null) {
+      // --- Update existing entry ---
+      const success = await updateEntry(editingEntry.id, { minutes, description });
+      if (success) {
+        setLastSaveWasUpdate(true);
+        setSaveSuccess(true);
+        setEditingEntry(null);
+        setMinutes(60);
+        setDescription("");
+        refetchCalendar();
+        refetchDay();
+        refetchWeek();
+      }
+    } else {
+      // --- Create new entry ---
+      const success = await createEntry({
+        employee_id: selectedEmployee.id,
+        entry_date: toISODateString(selectedDate),
+        minutes,
+        description,
+      });
+      if (success) {
+        setLastSaveWasUpdate(false);
+        setSaveSuccess(true);
+        setMinutes(60);
+        setDescription("");
+        refetchCalendar();
+        refetchDay();
+        refetchWeek();
+      }
     }
   };
 
-  const isFormDisabled = selectedEmployee === null || selectedDate === null || isSubmitting;
+  const isAnySubmitting = isSubmitting || isUpdating;
+  const isFormDisabled = selectedEmployee === null || selectedDate === null || isAnySubmitting;
   const canSave = !isFormDisabled && dailyLimitError === null;
+  const activeError = editingEntry !== null ? updateError : saveError;
 
   return (
     <main className="home-page">
@@ -181,30 +229,58 @@ export function HomePage(): React.JSX.Element {
                 disabled={isFormDisabled}
               />
 
-              {saveError !== null && (
+              {editingEntry !== null && (
+                <p className="home-page__edit-banner" role="status">
+                  Editing entry — modify the fields above and click “Update Entry” to save.
+                </p>
+              )}
+
+              {activeError !== null && (
                 <p className="error-message" role="alert">
-                  {saveError}
+                  {activeError}
                 </p>
               )}
 
               {saveSuccess && (
                 <p className="success-message" role="status">
-                  Entry saved successfully!
+                  {lastSaveWasUpdate ? "Entry updated successfully!" : "Entry saved successfully!"}
                 </p>
               )}
 
-              <button
-                type="button"
-                className="home-page__save-btn"
-                onClick={() => void handleSave()}
-                disabled={!canSave}
-                aria-busy={isSubmitting}
-              >
-                {isSubmitting ? "Saving…" : "Save Entry"}
-              </button>
+              <div className="home-page__btn-group">
+                <button
+                  type="button"
+                  className="home-page__save-btn"
+                  onClick={() => void handleSave()}
+                  disabled={!canSave}
+                  aria-busy={isAnySubmitting}
+                >
+                  {isAnySubmitting
+                    ? "Saving…"
+                    : editingEntry !== null
+                      ? "Update Entry"
+                      : "Save Entry"}
+                </button>
+
+                {editingEntry !== null && (
+                  <button
+                    type="button"
+                    className="home-page__cancel-btn"
+                    onClick={handleCancelEdit}
+                    disabled={isAnySubmitting}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
 
               {/* Day Summary */}
-              <DaySummary daySummary={daySummary} isLoading={isDayLoading} />
+              <DaySummary
+                daySummary={daySummary}
+                isLoading={isDayLoading}
+                onEditEntry={handleEditEntry}
+                editingEntryId={editingEntry?.id ?? null}
+              />
             </>
           ) : (
             <p className="home-page__no-date-hint">

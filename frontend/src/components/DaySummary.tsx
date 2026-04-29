@@ -7,12 +7,17 @@
 import type { components } from "@/api/generated";
 
 type DaySummaryData = components["schemas"]["DaySummary"];
+type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
 
 interface DaySummaryProps {
   /** Day summary data from the API — null means no date is selected */
   daySummary: DaySummaryData | null;
   /** True while the API request is loading */
   isLoading: boolean;
+  /** Called when the user clicks an entry row to edit it */
+  onEditEntry?: (entry: TimesheetEntryRead) => void;
+  /** ID of the entry currently being edited — its row gets highlighted */
+  editingEntryId?: number | null;
 }
 
 /**
@@ -22,7 +27,12 @@ interface DaySummaryProps {
  * Displays the total duration at the bottom.
  * Shows a loading indicator while data is being fetched.
  */
-export function DaySummary({ daySummary, isLoading }: DaySummaryProps): React.JSX.Element {
+export function DaySummary({
+  daySummary,
+  isLoading,
+  onEditEntry,
+  editingEntryId,
+}: DaySummaryProps): React.JSX.Element {
   if (isLoading) {
     return (
       <div className="day-summary day-summary--loading">
@@ -67,14 +77,35 @@ export function DaySummary({ daySummary, isLoading }: DaySummaryProps): React.JS
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="day-summary__duration">{entry.hours_display}</td>
-                <td className="day-summary__description">
-                  {entry.description.length > 0 ? entry.description : <em>No description</em>}
-                </td>
-              </tr>
-            ))}
+            {entries.map((entry) => {
+              const isEditing = editingEntryId === entry.id;
+              const isClickable = onEditEntry !== undefined;
+              const rowClass = [
+                isClickable ? "day-summary__row--clickable" : "",
+                isEditing ? "day-summary__row--editing" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <tr
+                  key={entry.id}
+                  className={rowClass || undefined}
+                  onClick={isClickable ? () => onEditEntry(entry) : undefined}
+                  aria-label={
+                    isClickable
+                      ? `Edit entry: ${entry.hours_display}${
+                          entry.description.length > 0 ? ` – ${entry.description}` : ""
+                        }`
+                      : undefined
+                  }
+                >
+                  <td className="day-summary__duration">{entry.hours_display}</td>
+                  <td className="day-summary__description">
+                    {entry.description.length > 0 ? entry.description : <em>No description</em>}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           {total_minutes > 0 && (
             <tfoot>
