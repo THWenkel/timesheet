@@ -123,9 +123,18 @@ class TimesheetEntryRead(TimesheetEntryBase):
 
     Includes the primary key, employee reference, and audit timestamps.
     Configured with from_attributes=True for ORM model mapping.
+
+    Note: The ``minutes`` field is re-declared here as a plain ``int`` (no
+    lower-bound constraint) so that existing DB rows with unexpected values
+    (e.g. 0) can be read back without a ValidationError.  Input constraints
+    (ge=15, multiple-of-15) remain enforced on Create/Update schemas only.
     """
 
     model_config = ConfigDict(from_attributes=True)
+
+    # Override the base MinutesValue (ge=15) with an unconstrained int so
+    # that reading from the DB never raises a validation error.
+    minutes: int = Field(description="Duration in minutes as stored in the database")
 
     id: int = Field(description="Auto-incremented primary key")
     employee_id: int = Field(description="ID of the employee who owns this entry")
