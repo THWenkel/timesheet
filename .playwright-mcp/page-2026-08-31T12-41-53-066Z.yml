@@ -1,0 +1,4 @@
+- generic [active] [ref=f2e1]:
+  - heading "Not Found" [level=2] [ref=f2e2]
+  - separator [ref=f2e3]
+  - paragraph [ref=f2e4]: HTTP Error 404. The requested resource is not found.
