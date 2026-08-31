@@ -1,0 +1,10 @@
+- generic [ref=e4]:
+  - heading "Anmelden" [level=1] [ref=e5]
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: Benutzername
+      - textbox "Benutzername" [ref=e9]
+    - generic [ref=e10]:
+      - generic [ref=e11]: Passwort
+      - textbox "Passwort" [ref=e12]
+    - button "Anmelden" [ref=e13] [cursor=pointer]

@@ -16,6 +16,7 @@
 # header that triggers a browser download with an appropriate filename.
 # =============================================================================
 
+import io
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -147,7 +148,6 @@ def export_timesheets(
     filename = _get_filename(format, employee_name, from_date, to_date)
     content_type = _get_content_type(format)
 
-    import io
     return StreamingResponse(
         content=io.BytesIO(file_bytes),
         media_type=content_type,
