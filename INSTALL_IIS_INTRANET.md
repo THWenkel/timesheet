@@ -169,7 +169,13 @@ cd C:\Apps\timesheet\backend
 .\.venv\Scripts\Activate.ps1
 
 # Backend starten
-gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000
+## Gunicorn starten (nicht unter Windows), ist nur für Linux / MacOS gedacht:
+gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000   # das läuft nicht unter Windows !
+
+## Hinweis:
+# Unter Windows: uvicorn direkt starten (nur für Testzwecke)
+
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
 ```
 
 In einem **zweiten PowerShell-Fenster** prüfen:
@@ -201,6 +207,8 @@ C:\Tools\nssm\win64\nssm.exe set TimesheetBackend AppDirectory `
 
 # Startparameter: 2 Worker-Prozesse, bindet nur an localhost
 C:\Tools\nssm\win64\nssm.exe set TimesheetBackend AppParameters `
+    "-m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2"
+    ## das ist falsch, gunicorn läuft nicht unter Windows
     "-m gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000"
 
 # Log-Dateien mit automatischer Rotation (max. 10 MB pro Datei)
