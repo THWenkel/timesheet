@@ -16,6 +16,22 @@
 				"$tsc"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Deploy frontend to IIS",
+			"type": "shell",
+			"command": "Copy-Item",
+			"args": [
+				"-Path",
+				"C:\\Apps\\timesheet\\frontend\\dist\\*",
+				"-Destination",
+				"C:\\inetpub\\wwwroot\\intranet.wenkel.local\\timesheet",
+				"-Recurse",
+				"-Force"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

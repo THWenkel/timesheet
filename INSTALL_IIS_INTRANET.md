@@ -5,6 +5,10 @@ IIS-Website `intranet.wenkel.local` (Port 80) einzubinden.
 
 **Ziel-URL nach Abschluss:** `http://intranet.wenkel.local/timesheet`
 
+> `webserver01.wenkel.local` ist der Rechnername. Die IIS-Site ist über den
+> Hostheader `intranet.wenkel.local` gebunden; deshalb muss für den Anwendungstest
+> die oben genannte Ziel-URL verwendet werden.
+
 ---
 
 ## Architekturüberblick
@@ -105,15 +109,10 @@ python -m venv .venv
 
 # Alle Abhängigkeiten installieren
 pip install -e ".[dev]"
-
-# Gunicorn für Produktion installieren (mehrere Worker-Prozesse)
-pip install gunicorn
 ```
 
-> **Warum Gunicorn?**
-> Das bare `uvicorn` läuft in einem einzigen Prozess. `gunicorn` mit `uvicorn`-Workern
-> startet mehrere parallele Prozesse, startet abgestürzte Worker automatisch neu,
-> und ist der empfohlene Produktions-Stack für FastAPI.
+> **Windows-Hinweis:** Gunicorn wird unter Windows nicht unterstützt. Das Backend
+> läuft deshalb als einzelner Uvicorn-Prozess unter Aufsicht des NSSM-Dienstes.
 
 ### 3.2 Umgebungsvariablen konfigurieren
 
@@ -169,13 +168,7 @@ cd C:\Apps\timesheet\backend
 .\.venv\Scripts\Activate.ps1
 
 # Backend starten
-## Gunicorn starten (nicht unter Windows), ist nur für Linux / MacOS gedacht:
-gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000   # das läuft nicht unter Windows !
-
-## Hinweis:
-# Unter Windows: uvicorn direkt starten (nur für Testzwecke)
-
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 In einem **zweiten PowerShell-Fenster** prüfen:
@@ -205,11 +198,9 @@ C:\Tools\nssm\win64\nssm.exe install TimesheetBackend `
 C:\Tools\nssm\win64\nssm.exe set TimesheetBackend AppDirectory `
     "C:\Apps\timesheet\backend"
 
-# Startparameter: 2 Worker-Prozesse, bindet nur an localhost
+# Startparameter: einzelner Uvicorn-Prozess, bindet nur an localhost
 C:\Tools\nssm\win64\nssm.exe set TimesheetBackend AppParameters `
-    "-m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2"
-    ## das ist falsch, gunicorn läuft nicht unter Windows
-    "-m gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000"
+  "-m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 
 # Log-Dateien mit automatischer Rotation (max. 10 MB pro Datei)
 C:\Tools\nssm\win64\nssm.exe set TimesheetBackend AppStdout `
@@ -248,16 +239,29 @@ cd C:\Develop\timesheet\frontend
 # Node-Abhängigkeiten installieren
 npm install
 
-# WICHTIG: VITE_API_URL muss leer sein (kein Wert)
-# Der IIS-Proxy übernimmt die Weiterleitung von /api/* zum Backend.
-# Öffne frontend\.env und stelle sicher, dass dort steht:
-#   VITE_API_URL=
-# (oder die Datei enthält die Zeile einfach nicht)
+# VITE_API_URL nicht setzen. In Produktion verwendet der Client automatisch
+# /timesheet/api/*; in der Entwicklung übernimmt Vites /api-Proxy.
+
+# Nach Backend-Änderungen API-Typen bei laufendem Backend neu erzeugen
+npm run generate-api
 
 # Produktions-Build erstellen
 npm run build
 # Erzeugt den Ordner: frontend\dist\
 ```
+
+Die Frontend-Konfiguration muss für die IIS-Unteranwendung folgende Punkte enthalten:
+
+```ts
+// vite.config.ts
+base: "/timesheet/"
+
+// App.tsx
+<BrowserRouter basename={import.meta.env.BASE_URL}>
+```
+
+Dadurch werden Assets unter `/timesheet/assets/*`, das Favicon unter
+`/timesheet/clock.svg` und API-Aufrufe unter `/timesheet/api/*` angefordert.
 
 `dist/`-Ordner auf den Server kopieren:
 
@@ -353,20 +357,32 @@ mit folgendem Inhalt:
     <urlCompression doStaticCompression="true" doDynamicCompression="true" />
 
     <staticContent>
-      <!--
-        Lange Cache-Dauer für statische Assets:
-        Vite generiert bei jedem Build eindeutige Dateinamen (z. B. main-a3f1b2.js),
-        sodass Browser immer die aktuelle Version laden.
-      -->
-      <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="365.00:00:00" />
+      <!-- index.html nach jedem Deployment neu validieren -->
+      <clientCache cacheControlMode="DisableCache" />
 
-      <!-- WebAssembly-MIME-Type (für zukünftige Erweiterungen) -->
-      <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
     </staticContent>
 
   </system.webServer>
+
+  <!-- Nur gehashte Vite-Assets dürfen langfristig gecacht werden. -->
+  <location path="assets">
+    <system.webServer>
+      <staticContent>
+        <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="365.00:00:00" />
+      </staticContent>
+    </system.webServer>
+  </location>
 </configuration>
 ```
+
+> `.wasm` darf hier nicht erneut per `<mimeMap>` registriert werden. Windows
+> Server 2019/IIS enthält diesen MIME-Type bereits global; ein doppelter Eintrag
+> verursacht `HTTP 500.19`, Fehlercode `0x800700b7`.
+
+`clientCache` darf nicht pauschal mit 365 Tagen auf die gesamte Anwendung gesetzt
+werden. Sonst wird auch `index.html` langfristig gespeichert und verweist nach einem
+Update weiterhin auf alte Asset-Dateien. Nur der Ordner `assets` erhält den langen
+Cache, da Vite dort inhaltsabhängige Dateinamen erzeugt.
 
 ### 6.3 IIS neu starten
 
@@ -480,7 +496,6 @@ git pull
 cd backend
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-pip install --upgrade gunicorn
 
 # 3. Datenbankmigrationen anwenden
 alembic upgrade head
@@ -491,7 +506,9 @@ net start TimesheetBackend
 
 # 5. Frontend neu bauen (auf dem Entwicklungsrechner)
 #    cd C:\Develop\timesheet\frontend
-#    npm install && npm run build
+#    npm install
+#    npm run generate-api
+#    npm run build
 
 # 6. Neuen dist/-Inhalt auf den Server kopieren
 Copy-Item -Path "C:\Develop\timesheet\frontend\dist\*" `

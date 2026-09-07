@@ -36,6 +36,7 @@ import type { paths } from "./generated";
  * Regenerate after backend changes: npm run generate-api
  */
 export const apiClient = createClient<paths>({
-  // Base URL from .env VITE_API_URL — falls back to '' (Vite proxy) if not set
-  baseUrl: import.meta.env.VITE_API_URL ?? "",
+  // Production is hosted below /timesheet; development keeps using Vite's /api proxy.
+  baseUrl:
+    import.meta.env["VITE_API_URL"] ?? import.meta.env.BASE_URL.replace(/\/$/, ""),
 });

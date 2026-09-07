@@ -21,6 +21,33 @@ type WeekSummary = components["schemas"]["WeekSummary"];
 type TimesheetEntryCreate = components["schemas"]["TimesheetEntryCreate"];
 type TimesheetEntryUpdate = components["schemas"]["TimesheetEntryUpdate"];
 
+function getApiErrorMessage(apiError: unknown, fallback: string): string {
+  if (typeof apiError !== "object" || apiError === null || !("detail" in apiError)) {
+    return fallback;
+  }
+
+  const { detail } = apiError;
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap((item) =>
+      typeof item === "object" &&
+      item !== null &&
+      "msg" in item &&
+      typeof item.msg === "string"
+        ? [item.msg]
+        : [],
+    );
+    if (messages.length > 0) {
+      return messages.join(" ");
+    }
+  }
+
+  return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Hook: useCalendarDates
 // ---------------------------------------------------------------------------
@@ -257,14 +284,7 @@ export function useCreateEntry(): UseCreateEntryResult {
     setIsSubmitting(false);
 
     if (apiError !== undefined) {
-      const msg =
-        typeof apiError === "object" &&
-        apiError !== null &&
-        "detail" in apiError &&
-        typeof (apiError as { detail: unknown }).detail === "string"
-          ? (apiError as { detail: string }).detail
-          : "Failed to save entry.";
-      setError(msg);
+      setError(getApiErrorMessage(apiError, "Failed to save entry."));
       return false;
     }
 
@@ -309,14 +329,7 @@ export function useUpdateEntry(): UseUpdateEntryResult {
     setIsSubmitting(false);
 
     if (apiError !== undefined) {
-      const msg =
-        typeof apiError === "object" &&
-        apiError !== null &&
-        "detail" in apiError &&
-        typeof (apiError as { detail: unknown }).detail === "string"
-          ? (apiError as { detail: string }).detail
-          : "Failed to update entry.";
-      setError(msg);
+      setError(getApiErrorMessage(apiError, "Failed to update entry."));
       return false;
     }
 
