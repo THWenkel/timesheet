@@ -479,6 +479,7 @@ Nach Abschluss aller Schritte folgendes überprüfen:
 [ ] http://intranet.wenkel.local/timesheet/ lädt die React-Anwendung im Browser
 [ ] Das Mitarbeiter-Dropdown lädt (API-Verbindung über IIS-Proxy funktioniert)
 [ ] Ein Zeiteintrag kann erstellt und gespeichert werden
+[ ] PDF-Export für einen Mitarbeiter liefert eine PDF-Datei (kein HTTP 403/404/500)
 [ ] Nach Server-Neustart startet der Backend-Dienst automatisch
 [ ] Browser-Konsole (F12 → Console) zeigt keine Fehler
 ```
@@ -495,7 +496,8 @@ git pull
 # 2. Python-Pakete aktualisieren
 cd backend
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
+python -m pip check
 
 # 3. Datenbankmigrationen anwenden
 alembic upgrade head
@@ -514,7 +516,55 @@ net start TimesheetBackend
 Copy-Item -Path "C:\Develop\timesheet\frontend\dist\*" `
     -Destination "C:\inetpub\wwwroot\intranet.wenkel.local\timesheet" `
     -Recurse -Force
+
+# 7. PDF-Export über IIS prüfen
+$pdfUrl = "http://intranet.wenkel.local/timesheet/api/export/" + `
+  "?format=pdf&employee_id=1&from_date=2026-08-01&to_date=2026-08-31"
+$response = Invoke-WebRequest -Uri $pdfUrl -UseBasicParsing
+$signature = [Text.Encoding]::ASCII.GetString($response.Content[0..4])
+$response.StatusCode                 # Erwartet: 200
+$response.Headers["Content-Type"]   # Erwartet: application/pdf
+$signature                           # Erwartet: %PDF-
 ```
+
+---
+
+## Fehlerdiagnose beim Export
+
+### HTTP 403 oder 404
+
+In den Browser-Entwicklertools unter **Network** die Request-URL kontrollieren.
+Sie muss bei dieser IIS-Unteranwendung mit folgendem Pfad beginnen:
+
+```text
+http://intranet.wenkel.local/timesheet/api/export/
+```
+
+Eine Anfrage an `/api/export/` ohne `/timesheet` erreicht die Rewrite-Regel der
+IIS-Anwendung nicht und kann abhängig von der IIS-Konfiguration mit 403 oder 404
+beantwortet werden. Direkte Downloads im Frontend müssen deshalb dieselbe
+`apiBaseUrl` aus `frontend/src/api/client.ts` wie der OpenAPI-Client verwenden.
+Nach einer Korrektur das Frontend neu bauen und den vollständigen Inhalt von
+`frontend/dist/` erneut nach IIS kopieren.
+
+### HTTP 500 beim PDF-Export
+
+Zuerst `C:\Logs\timesheet\backend-error.log` prüfen. Bei
+`ModuleNotFoundError`, beispielsweise für `pypdf`, ist die virtuelle Umgebung
+nicht mit `backend/pyproject.toml` synchronisiert:
+
+```powershell
+cd C:\Apps\timesheet\backend
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m pip check
+net stop TimesheetBackend
+net start TimesheetBackend
+```
+
+Nicht nur das einzelne fehlende Paket installieren: Die Installation des
+Projekts synchronisiert alle deklarierten Laufzeitabhängigkeiten. Anschließend
+den oben beschriebenen PDF-Smoke-Test erneut ausführen.
 
 ---
 

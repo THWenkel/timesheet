@@ -26,6 +26,9 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated";
 
+export const apiBaseUrl =
+  import.meta.env["VITE_API_URL"] ?? import.meta.env.BASE_URL.replace(/\/$/, "");
+
 /**
  * Typed API client generated from the FastAPI OpenAPI schema.
  *
@@ -37,6 +40,5 @@ import type { paths } from "./generated";
  */
 export const apiClient = createClient<paths>({
   // Production is hosted below /timesheet; development keeps using Vite's /api proxy.
-  baseUrl:
-    import.meta.env["VITE_API_URL"] ?? import.meta.env.BASE_URL.replace(/\/$/, ""),
+  baseUrl: apiBaseUrl,
 });

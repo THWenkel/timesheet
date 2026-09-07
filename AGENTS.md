@@ -312,6 +312,13 @@ Single endpoint `GET /api/export` with query parameters:
 
 Returns a `StreamingResponse` with appropriate `Content-Disposition` header for browser download.
 
+- PDF generation requires the declared `pypdf` and `reportlab` runtime dependencies. After
+    updating `backend/pyproject.toml`, rerun `python -m pip install -e ".[dev]"` in the backend
+    virtual environment and restart the backend service.
+- Browser-triggered downloads must build their URL from `apiBaseUrl` in
+    `frontend/src/api/client.ts`. A root-relative `/api/...` URL bypasses the `/timesheet`
+    IIS application and its reverse-proxy rule.
+
 ### Multi-User Design
 
 - All DB writes include `employee_id` FK to the `employees` table

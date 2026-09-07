@@ -9,6 +9,7 @@
    ============================================================================= */
 
 import { useState } from "react";
+import { apiBaseUrl } from "@/api/client";
 import { toISODateString } from "@/utils/timeUtils";
 
 type ExportFormat = "csv" | "excel" | "pdf";
@@ -57,7 +58,7 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
         to_date: toDate,
       });
 
-      const response = await fetch(`/api/export/?${params.toString()}`);
+      const response = await fetch(`${apiBaseUrl}/api/export/?${params.toString()}`);
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
