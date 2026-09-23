@@ -1,0 +1,67 @@
+<Window x:Class="Timesheet.Admin.Views.ProjectManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Projektverwaltung"
+        Width="1100"
+        Height="650"
+        MinWidth="820"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource CanvasBrush}">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="28" Text="Projektverwaltung" />
+            <TextBlock Margin="0,6,0,0"
+                       Foreground="#5B6864"
+                       Text="Projekte, Laufzeiten, Budgets und Benutzerzuordnungen" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,12" Orientation="Horizontal">
+            <Button Command="{Binding AddCommand}"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White"
+                    Content="+ Neu" />
+            <Button Command="{Binding EditCommand}" Content="Bearbeiten" />
+            <Button Command="{Binding LoadCommand}" Content="Aktualisieren" />
+            <Button Click="Exit_Click" Margin="12,0,0,0" Content="Beenden" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#D8DEDB" BorderThickness="1" CornerRadius="6">
+            <DataGrid ItemsSource="{Binding Projects}"
+                      SelectedItem="{Binding SelectedProject}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      SelectionUnit="FullRow"
+                      GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0"
+                      BorderThickness="0"
+                      AlternatingRowBackground="#F7F9F8">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Projekt" Binding="{Binding Name}" Width="1.4*" />
+                    <DataGridTextColumn Header="Kunde" Binding="{Binding CustomerName}" Width="*" />
+                    <DataGridTextColumn Header="Budget" Binding="{Binding BudgetDisplay}" Width="120" />
+                    <DataGridTextColumn Header="Preise" Binding="{Binding RateDisplay}" Width="170" />
+                    <DataGridTextColumn Header="Von" Binding="{Binding StartsOn, StringFormat={}{0:dd.MM.yyyy}}" Width="105" />
+                    <DataGridTextColumn Header="Bis" Binding="{Binding EndsOn, StringFormat={}{0:dd.MM.yyyy}}" Width="105" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="110" />
+                    <DataGridTextColumn Header="Zugewiesen an"
+                                        Binding="{Binding AssignedEmployeesDisplay}"
+                                        Width="1.8*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Foreground="#A12828" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+            <TextBlock HorizontalAlignment="Right" Foreground="#5B6864" Text="{Binding StatusText}" />
+        </Grid>
+    </Grid>
+</Window>

@@ -54,6 +54,22 @@ def list_employees(
 
 
 @router.get(
+    "/admin",
+    response_model=list[EmployeeRead],
+    summary="List employees with administration details",
+)
+def list_employees_for_admin(
+    include_inactive: bool = True,
+    db: Session = Depends(get_db),
+) -> list[Employee]:
+    """Return complete employee records for the administration client."""
+    stmt = select(Employee).order_by(Employee.lastname, Employee.surname)
+    if not include_inactive:
+        stmt = stmt.where(Employee.is_active == True)  # noqa: E712
+    return list(db.execute(stmt).scalars().all())
+
+
+@router.get(
     "/{employee_id}",
     response_model=EmployeeRead,
     summary="Get a single employee by ID",

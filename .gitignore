@@ -68,6 +68,15 @@ alembic/versions/__pycache__/
 node_modules/
 frontend/node_modules/
 
+# -----------------------------------------------------------------------------
+# .NET / WPF administration client
+# -----------------------------------------------------------------------------
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
 # Build output
 frontend/dist/
 frontend/build/
