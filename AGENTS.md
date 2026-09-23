@@ -12,6 +12,7 @@ A multi-user timesheet web application with:
 
 - **Backend**: Python 3.14 + FastAPI + SQLAlchemy 2 ORM targeting Microsoft SQL Server 2012
 - **Frontend**: React 19 + TypeScript strict + Vite + react-calendar
+- **Administration**: .NET 10 WPF + MVVM Toolkit, using the FastAPI backend
 - **Export**: CSV, Excel (openpyxl), PDF (reportlab)
 - **Auth**: Scaffolded but not active in v1 — see `backend/app/core/security.py`
 
@@ -24,6 +25,9 @@ timesheet/
 ├── .gitignore
 ├── AGENTS.md                    ← this file
 ├── README.md
+├── admin/                      ← WPF administration client
+│   ├── README.md
+│   └── Timesheet.Admin/
 ├── specification/
 │   └── initialprompt.md         ← original project specification
 ├── backend/                     ← Python FastAPI backend
@@ -37,12 +41,14 @@ timesheet/
 │   │   │   └── session.py       ← engine + session factory
 │   │   ├── models/
 │   │   │   ├── employee.py      ← Employee ORM model
+│   │   │   ├── project.py       ← Customer, Project, and allocation ORM models
 │   │   │   └── timesheet.py     ← TimesheetEntry ORM model
 │   │   ├── schemas/
 │   │   │   ├── employee.py      ← Pydantic v2 schemas for Employee
 │   │   │   └── timesheet.py     ← Pydantic v2 schemas for TimesheetEntry + Export
 │   │   ├── routers/
 │   │   │   ├── employees.py     ← GET /api/employees
+│   │   │   ├── projects.py      ← Customer/project administration API
 │   │   │   ├── timesheets.py    ← GET/POST/PUT /api/timesheets
 │   │   │   └── export.py        ← GET /api/export
 │   │   └── services/
@@ -90,6 +96,35 @@ timesheet/
 ```
 
 ---
+
+## Datenbank Sicherungen durchführen
+
+```sql
+use WiTERP
+truncate table [dbo].[timesheet_entries_backup]
+
+use WiTERP
+truncate table [dbo].[employees_backup]
+
+-- Kein SET IDENTITY_INSERT nötig!
+-- Wir lassen die Spalte ID einfach weg – die neue Tabelle vergibt
+-- automatisch neue aufeinanderfolgende IDs.
+INSERT INTO dbo.timesheet_entries_backup
+(
+    [id], [employee_id],[entry_date],[minutes],[description],[created_at],[updated_at],[created_by],[updated_by]
+)
+SELECT [id], [employee_id],[entry_date],[minutes],[description], [created_at], [updated_at], [created_by], [updated_by]
+FROM dbo.timesheet_entries;
+
+
+insert into [dbo].[employees_backup]
+(
+    [surname], [lastname], [is_active], [created_at], [updated_at],[created_by], [updated_by]
+)
+select [surname], [lastname], [is_active], [created_at], [updated_at],[created_by], [updated_by]
+from dbo.employees;
+
+```
 
 ## Backend
 
@@ -168,6 +203,9 @@ cd backend
 
 # Run all pending SQL migration scripts (CLI tool)
 python cli.py --password YOUR_SA_PASSWORD migrate
+
+# Show applied and pending SQL migration scripts
+python cli.py --password YOUR_SA_PASSWORD status
 
 # Alembic: generate a new migration
 alembic revision --autogenerate -m "description"

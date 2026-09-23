@@ -22,6 +22,7 @@ from app.core.config import settings
 # Import Base and all models so Alembic can detect schema changes
 from app.db.base import Base
 from app.models import employee as _employee_models  # noqa: F401
+from app.models import project as _project_models  # noqa: F401
 from app.models import timesheet as _timesheet_models  # noqa: F401
 from app.db.session import _build_connection_string
 

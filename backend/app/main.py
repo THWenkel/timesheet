@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.security import auth_middleware
 from app.db.session import check_connection
-from app.routers import employees, export, timesheets
+from app.routers import employees, export, projects, timesheets
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,9 @@ app.add_middleware(
 app.include_router(employees.router)
 app.include_router(timesheets.router)
 app.include_router(export.router)
+app.include_router(projects.router)
+app.include_router(projects.customers_router)
+app.include_router(projects.country_codes_router)
 
 
 # =============================================================================

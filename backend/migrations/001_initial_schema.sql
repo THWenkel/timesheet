@@ -9,7 +9,7 @@
 --   2. timesheet_entries — individual timesheet entries per employee per day
 --   3. schema_migrations — tracks which SQL migration scripts have been applied
 --
--- Applied by: python cli.py migrate --password <password>
+-- Applied by: python cli.py --password <password> migrate
 -- =============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────

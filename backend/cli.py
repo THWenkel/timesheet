@@ -11,9 +11,8 @@
 # idempotent — running `migrate` multiple times only applies new scripts.
 #
 # Usage:
-#   python cli.py migrate --password <sa_password>
-#   python cli.py status  --password <sa_password>
-#   python cli.py rollback --script 001_initial_schema.sql --password <sa_password>
+#   python cli.py --password <sa_password> migrate
+#   python cli.py --password <sa_password> status
 #
 # ⚠️  SECURITY TODO (before go-live):
 #   - Remove the --password CLI argument.
@@ -198,7 +197,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
     # Apply each pending script
     for script in pending:
         print(f"[migrate] Applying {script.name} ...", end=" ")
-        sql = script.read_text(encoding="utf-8")
+        sql = script.read_text(encoding="utf-8-sig")
         try:
             # Execute the full SQL script — split on GO statements for SQL Server
             # GO is not a T-SQL command; it's a batch separator used by SSMS/sqlcmd
