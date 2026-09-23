@@ -75,6 +75,7 @@ frontend/node_modules/
 **/obj/
 *.user
 *.suo
+.vs/
 
 # Build output
 frontend/dist/
