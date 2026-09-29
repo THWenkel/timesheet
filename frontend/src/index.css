@@ -19,8 +19,14 @@ html {
 }
 
 body {
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
   font-size: 1rem;
   line-height: 1.5;
   color: #1a1a1a;
@@ -109,7 +115,9 @@ input[type="date"] {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 0.45rem 0.65rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   appearance: auto;
 }
 
@@ -270,7 +278,9 @@ tfoot td {
   border-radius: 6px;
   font-size: 0.9375rem;
   font-weight: 500;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
 }
 
 .home-page__cancel-btn:hover:not(:disabled) {
@@ -556,4 +566,50 @@ tfoot td {
   color: #c0392b;
   font-size: 0.875rem;
   margin-top: 0.4rem;
+}
+
+/* ── Login / change password ──────────────────────────────────────────────── */
+
+.auth-page {
+  max-width: 24rem;
+  margin: 3rem auto;
+}
+
+.auth-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #d8dee9;
+  border-radius: 8px;
+}
+
+.auth-page__form input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #b8c1cc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.auth-page__form button {
+  margin-top: 0.5rem;
+}
+
+.auth-page__hint {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.auth-page__loading {
+  margin: 3rem auto;
+  text-align: center;
+  color: #4b5563;
+}
+
+.home-page__user-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
 }

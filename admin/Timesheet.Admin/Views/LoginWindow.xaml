@@ -1,0 +1,38 @@
+<Window x:Class="Timesheet.Admin.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Timesheet Admin – Anmeldung"
+        Width="420"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource CanvasBrush}">
+    <StackPanel Margin="26">
+        <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="24" Text="Anmeldung" />
+        <TextBlock x:Name="Subtitle" Margin="0,6,0,18" Foreground="#5B6864"
+                   Text="Nur Administratoren dürfen das Admin-Tool nutzen." TextWrapping="Wrap" />
+
+        <StackPanel x:Name="LoginPanel">
+            <TextBlock Margin="0,0,0,6" Text="Benutzername" />
+            <TextBox x:Name="UsernameBox" Padding="8" />
+            <TextBlock Margin="0,14,0,6" Text="Passwort" />
+            <PasswordBox x:Name="PasswordBox" Padding="8" />
+        </StackPanel>
+
+        <StackPanel x:Name="ChangePanel" Visibility="Collapsed">
+            <TextBlock Margin="0,0,0,6" Text="Neues Passwort (mindestens 10 Zeichen)" />
+            <PasswordBox x:Name="NewPasswordBox" Padding="8" />
+            <TextBlock Margin="0,14,0,6" Text="Neues Passwort wiederholen" />
+            <PasswordBox x:Name="RepeatPasswordBox" Padding="8" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText" Margin="0,12,0,0" Foreground="#A12828" TextWrapping="Wrap" />
+
+        <StackPanel Margin="0,18,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button IsCancel="True" Content="Abbrechen" />
+            <Button x:Name="SubmitButton" IsDefault="True" Margin="0"
+                    Background="{StaticResource AccentBrush}" Foreground="White"
+                    Click="Submit_Click" Content="Anmelden" />
+        </StackPanel>
+    </StackPanel>
+</Window>

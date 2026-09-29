@@ -68,3 +68,20 @@ before they can be selected for a project.
 Selecting an employee in the main window loads that employee's assigned projects into
 the lower grid. Budgets are stored either as hours or person-days; no implicit conversion
 is performed until a standard number of hours per person-day has been agreed.
+
+## Datensicherung und Wiederherstellung
+
+Hauptfenster → **Sicherung**. Tabellen per Checkbox auswählen.
+
+- **Sicherung in Datenbank:** kopiert die Tabellen in ihre `*_backup`-Tabellen (Migration `009_backup_tables.sql`). Der alte Inhalt einer Sicherungstabelle wird erst ersetzt, wenn die neue Sicherung vollständig geschrieben ist (eine Transaktion).
+- **Sicherung in Dateien:** CSV und/oder JSON, eine Datei pro Tabelle: `<tabelle>_<yyyyMMdd_HHmmss>.csv|json`. Bestehende Dateien werden nie überschrieben. Der zuletzt gewählte Ordner wird in `%APPDATA%\Timesheet.Admin\settings.json` gemerkt.
+- **Wiederherstellung** (aus `*_backup` oder aus Dateien): überschreibt vorhandene Datensätze (Abgleich über den Schlüssel), fügt fehlende ein und löscht nie etwas. Vorher wird der aktuelle Stand als JSON-Sicherheitskopie in einen Ordner geschrieben, die Bestätigung erfolgt zweistufig (Ja/Nein mit Auflistung, dann Eingabe von `WIEDERHERSTELLEN`).
+
+Jede neue Migration, die Tabellen oder Spalten anlegt, muss die passende `*_backup`-Tabelle im selben Skript anlegen bzw. erweitern und die Tabelle in `TABLE_SPECS` (`backend/app/services/backup_service.py`) eintragen.
+
+## Anmeldung und Benutzer
+
+- Ist auf dem Server `AUTH_ENABLED=true`, öffnet sich beim Start ein Login-Fenster. Nur Benutzer mit dem Haken **Administrator** kommen hinein. Nach einem Reset verlangt das Fenster sofort ein neues Passwort. Ist `AUTH_ENABLED=false` (Ersteinrichtung), entfällt der Login.
+- Benutzer bearbeiten: Benutzername (Login) und Administrator-Recht. **Einmalpasswort** setzt ein Zufallspasswort, kopiert es in die Zwischenablage und zeigt es einmalig an. Der Benutzer muss es beim ersten Login ändern.
+- Die Sitzung ist ein Cookie (Standard 8 Stunden). Über `http://` funktioniert sie nur, wenn der Server `COOKIE_SECURE=false` hat (nur lokale Entwicklung); in Produktion `TIMESHEET_API_URL=https://...` setzen.
+- Migration `010_employee_auth.sql`: Login-Spalten in `employees` und `employees_backup`.

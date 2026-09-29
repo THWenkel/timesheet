@@ -147,3 +147,7 @@ pnpm-debug.log*
 *.temp
 
 .playwright-mcp/*.pdf
+
+# Claude Code (local settings/permissions, not shared)
+.claude/settings.local.json
+.claude/

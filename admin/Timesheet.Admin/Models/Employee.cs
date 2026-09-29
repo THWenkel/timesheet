@@ -19,7 +19,37 @@ public sealed class Employee
     [JsonPropertyName("updated_at")]
     public DateTime UpdatedAt { get; init; }
 
+    [JsonPropertyName("username")]
+    public string? Username { get; init; }
+
+    [JsonPropertyName("is_admin")]
+    public bool IsAdmin { get; init; }
+
+    [JsonPropertyName("must_change_password")]
+    public bool MustChangePassword { get; init; }
+
+    [JsonPropertyName("has_password")]
+    public bool HasPassword { get; init; }
+
     public string DisplayName => $"{Surname} {Lastname}";
 }
 
-public sealed record EmployeeDraft(string Surname, string Lastname, bool IsActive);
+// Username and IsAdmin: null means "leave unchanged".
+public sealed record EmployeeDraft(
+    string Surname,
+    string Lastname,
+    bool IsActive,
+    string? Username = null,
+    bool? IsAdmin = null);
+
+public sealed class TemporaryPassword
+{
+    [JsonPropertyName("employee_id")]
+    public int EmployeeId { get; init; }
+
+    [JsonPropertyName("username")]
+    public required string Username { get; init; }
+
+    [JsonPropertyName("temporary_password")]
+    public required string Password { get; init; }
+}

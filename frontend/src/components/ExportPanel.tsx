@@ -58,7 +58,9 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
         to_date: toDate,
       });
 
-      const response = await fetch(`${apiBaseUrl}/api/export/?${params.toString()}`);
+      const response = await fetch(`${apiBaseUrl}/api/export/?${params.toString()}`, {
+        credentials: "include",
+      });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);

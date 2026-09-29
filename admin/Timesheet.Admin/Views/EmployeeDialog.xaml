@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Benutzer bearbeiten"
         Width="440"
-        Height="320"
+        Height="450"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
@@ -26,9 +26,15 @@
             <TextBlock Margin="0,0,0,6" Text="Nachname" />
             <TextBox Padding="8"
                      Text="{Binding Lastname, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Margin="0,16,0,6" Text="Benutzername (Login)" />
+            <TextBox Padding="8"
+                     Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
             <CheckBox Margin="0,18,0,0"
                       Content="Benutzer ist aktiv"
                       IsChecked="{Binding IsActive}" />
+            <CheckBox Margin="0,10,0,0"
+                      Content="Administrator (darf das Admin-Tool und die Datensicherung nutzen)"
+                      IsChecked="{Binding IsAdmin}" />
         </StackPanel>
 
         <TextBlock x:Name="ValidationMessage"

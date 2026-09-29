@@ -33,6 +33,12 @@ public partial class EmployeeDialog : Window
             return;
         }
 
+        if (draft.Username is { Length: > 0 } and var name && (name.Length < 3 || name.Length > 100))
+        {
+            ValidationMessage.Text = "Der Benutzername muss 3 bis 100 Zeichen lang sein.";
+            return;
+        }
+
         Result = draft;
         DialogResult = true;
     }

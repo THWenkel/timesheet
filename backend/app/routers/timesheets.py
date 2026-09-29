@@ -18,6 +18,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import AuthContext, ensure_employee_access, require_user
 from app.db.session import get_db
 from app.models.timesheet import TimesheetEntry
 from app.schemas.timesheet import (
@@ -48,12 +49,14 @@ def get_dates_with_entries(
     year: int,
     month: int,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> list[DateWithEntries]:
     """
     Return dates within a calendar month that have timesheet entries.
 
     Validates the month parameter (1-12) and delegates to the service layer.
     """
+    ensure_employee_access(auth, employee_id)
     if not 1 <= month <= 12:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -71,11 +74,13 @@ def get_day_summary(
     employee_id: int,
     entry_date: date,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> DaySummary:
     """
     Retrieve all timesheet entries for an employee on a specific date,
     along with the total minutes logged for that day.
     """
+    ensure_employee_access(auth, employee_id)
     return timesheet_service.get_day_summary(db, employee_id, entry_date)
 
 
@@ -88,6 +93,7 @@ def get_week_summary(
     employee_id: int,
     any_date: date,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> WeekSummary:
     """
     Return a week summary for the 7-day period (Monday to Sunday)
@@ -96,6 +102,7 @@ def get_week_summary(
     Includes per-day totals, total minutes for the full week,
     and whether each day has any entries.
     """
+    ensure_employee_access(auth, employee_id)
     return timesheet_service.get_week_summary(db, employee_id, any_date)
 
 
@@ -107,6 +114,7 @@ def get_week_summary(
 def get_entry(
     entry_id: int,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> TimesheetEntry:
     """
     Retrieve a single timesheet entry by its primary key.
@@ -119,6 +127,7 @@ def get_entry(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"TimesheetEntry with id={entry_id} not found",
         )
+    ensure_employee_access(auth, entry.employee_id)
     return entry
 
 
@@ -131,6 +140,7 @@ def get_entry(
 def create_entry(
     payload: TimesheetEntryCreate,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> TimesheetEntryRead:
     """
     Create a new timesheet entry for an employee on a specific date.
@@ -144,8 +154,11 @@ def create_entry(
     Raises HTTP 400 if business rules are violated.
     Raises HTTP 422 if input validation fails (Pydantic).
     """
+    ensure_employee_access(auth, payload.employee_id)
     try:
-        return timesheet_service.create_entry(db, payload)
+        return timesheet_service.create_entry(
+            db, payload, acting_user_id=auth.employee_id if auth else None
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -162,6 +175,7 @@ def update_entry(
     entry_id: int,
     payload: TimesheetEntryUpdate,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> TimesheetEntryRead:
     """
     Partially update an existing timesheet entry.
@@ -172,13 +186,17 @@ def update_entry(
     Raises HTTP 404 if the entry does not exist.
     Raises HTTP 400 if the update would violate business rules.
     """
+    existing = db.get(TimesheetEntry, entry_id)
+    if existing is not None:
+        ensure_employee_access(auth, existing.employee_id)
     try:
-        return timesheet_service.update_entry(db, entry_id, payload)
+        return timesheet_service.update_entry(
+            db, entry_id, payload, acting_user_id=auth.employee_id if auth else None
+        )
     except ValueError as exc:
         detail = str(exc)
         status_code = (
-            status.HTTP_404_NOT_FOUND if "not found" in detail
-            else status.HTTP_400_BAD_REQUEST
+            status.HTTP_404_NOT_FOUND if "not found" in detail else status.HTTP_400_BAD_REQUEST
         )
         raise HTTPException(status_code=status_code, detail=detail) from exc
 
@@ -191,6 +209,7 @@ def update_entry(
 def delete_entry(
     entry_id: int,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> None:
     """
     Permanently delete a timesheet entry.
@@ -203,5 +222,6 @@ def delete_entry(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"TimesheetEntry with id={entry_id} not found",
         )
+    ensure_employee_access(auth, entry.employee_id)
     db.delete(entry)
     db.commit()

@@ -37,11 +37,14 @@
                     Content="＋ Neu" />
             <Button Command="{Binding EditCommand}" Content="✎ Bearbeiten" />
             <Button Command="{Binding DeactivateCommand}" Content="⊘ Deaktivieren" />
+            <Button Command="{Binding DeleteCommand}" Content="Löschen" />
+            <Button Command="{Binding ResetPasswordCommand}" Content="Einmalpasswort" />
             <Button Command="{Binding LoadCommand}" Content="↻ Aktualisieren" />
             <Button Command="{Binding OpenProjectsCommand}"
                     Margin="12,0,0,0"
                     Content="Projekte" />
                 <Button Command="{Binding OpenCustomersCommand}" Content="Kunden" />
+            <Button Command="{Binding OpenBackupCommand}" Content="Sicherung" />
             <Button Click="Exit_Click" Margin="12,0,0,0" Content="Beenden" />
         </StackPanel>
 
@@ -85,13 +88,18 @@
                         <Separator />
                         <MenuItem Header="Bearbeiten" Command="{Binding EditCommand}" />
                         <MenuItem Header="Deaktivieren" Command="{Binding DeactivateCommand}" />
+                        <MenuItem Header="Löschen" Command="{Binding DeleteCommand}" />
+                        <MenuItem Header="Einmalpasswort setzen" Command="{Binding ResetPasswordCommand}" />
                     </ContextMenu>
                 </DataGrid.ContextMenu>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" />
                     <DataGridTextColumn Header="Vorname" Binding="{Binding Surname}" Width="*" />
                     <DataGridTextColumn Header="Nachname" Binding="{Binding Lastname}" Width="*" />
-                    <DataGridCheckBoxColumn Header="Aktiv" Binding="{Binding IsActive}" Width="100" />
+                    <DataGridTextColumn Header="Benutzername" Binding="{Binding Username}" Width="*" />
+                    <DataGridCheckBoxColumn Header="Admin" Binding="{Binding IsAdmin}" Width="70" />
+                    <DataGridCheckBoxColumn Header="Passwort" Binding="{Binding HasPassword}" Width="80" />
+                    <DataGridCheckBoxColumn Header="Aktiv" Binding="{Binding IsActive}" Width="70" />
                     <DataGridTextColumn Header="Geändert"
                                         Binding="{Binding UpdatedAt, StringFormat={}{0:dd.MM.yyyy HH:mm}}"
                                         Width="170" />

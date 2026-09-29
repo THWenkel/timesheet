@@ -332,12 +332,54 @@ Time entries are stored as **integer minutes** (e.g. 90 = 1h 30m).
 - Frontend converts to/from `hh:mm` display format via `src/utils/timeUtils.ts`
 - Valid values: multiples of 15, in range 15–1440 (max 24h per day)
 
-### Authentication (v1: not active)
+### Authentifizierung (JWT)
 
-- `backend/app/core/security.py` contains a scaffold for JWT-based auth
-- In v1, the `Authorization` header is parsed but **not enforced**
-- The employee is selected via a dropdown in the frontend
-- **TODO**: Activate auth middleware before production deployment
+Anleitung für Administratoren und Anwender (Spalten der Benutzerliste, Rollen, Passwörter): [BENUTZERVERWALTUNG.md](BENUTZERVERWALTUNG.md).
+
+#### Konten, Passwörter, Anmeldung: so funktioniert es
+
+Es gibt **keine Selbstregistrierung und kein „Passwort vergessen“ per E-Mail** (kein Mailversand im Projekt). Alle Konten und alle ersten Passwörter kommen von einem Administrator:
+
+| Was | Wo | Wer |
+|---|---|---|
+| Konto anlegen bzw. Benutzernamen vergeben | Admin-Tool → Benutzer → Neu/Bearbeiten → Feld „Benutzername (Login)“ | Administrator |
+| **Erstes Passwort setzen** | Admin-Tool → Benutzer markieren → **„Einmalpasswort“** | Administrator |
+| Passwort vergessen / zurücksetzen | dasselbe: **„Einmalpasswort“** (macht das alte Passwort und alle Anmeldungen ungültig, hebt eine Sperre auf) | Administrator |
+| Eigenes Passwort ändern | Web-App → „Change password“ (Adresse `/timesheet/change-password`), altes Passwort nötig | jeder Benutzer |
+| Anmelden | Web-App `/timesheet/login` (Benutzername + Passwort) | jeder Benutzer |
+
+Ablauf für einen neuen Benutzer:
+
+1. Administrator vergibt im Admin-Tool einen **Benutzernamen** (mindestens 3 Zeichen, wird kleingeschrieben gespeichert).
+2. Administrator klickt **„Einmalpasswort“**. Das Tool zeigt das Passwort **einmalig** an und kopiert es in die Zwischenablage. Es steht nirgends sonst und ist nur als Hash (Argon2id) gespeichert.
+3. Administrator gibt Benutzername und Einmalpasswort auf sicherem Weg weiter (persönlich, Telefon; nicht per unverschlüsselter Mail).
+4. Der Benutzer meldet sich an. Weil es ein Einmalpasswort ist, verlangt die Web-App **sofort ein eigenes Passwort** (mindestens 10 Zeichen). Erst danach funktioniert alles andere.
+
+Regeln: 5 Fehlversuche sperren das Konto 15 Minuten (auch mit richtigem Passwort). Die Fehlermeldung ist immer dieselbe und verrät nicht, ob der Benutzername existiert. Ein Passwortwechsel oder Reset macht alle bisherigen Anmeldungen ungültig. Deaktivierte Benutzer können sich nicht anmelden und verlieren laufende Sitzungen sofort.
+
+#### Erste Einrichtung (den ersten Administrator anlegen)
+
+Ein Administrator muss existieren, bevor die Anmeldung erzwungen wird. Solange in `backend/.env` `AUTH_ENABLED=false` steht (Standard), fragt das Admin-Tool **nicht** nach einem Login, und die API lässt alles durch:
+
+1. Backend starten, Admin-Tool öffnen (kein Login-Fenster).
+2. Den eigenen Mitarbeiter bearbeiten: Benutzernamen eintragen, Haken **„Administrator“** setzen, speichern.
+3. **„Einmalpasswort“** klicken, Passwort notieren.
+4. In der Web-App unter `/timesheet/login` anmelden, das Einmalpasswort durch ein eigenes ersetzen. Damit ist geprüft, dass es funktioniert.
+5. Erst jetzt in `backend/.env` `AUTH_ENABLED=true` und `SECRET_KEY=<mind. 32 Zeichen>` setzen (Erzeugen: `python -c "import secrets; print(secrets.token_hex(32))"`), Backend neu starten. Ohne gültigen Schlüssel startet die App absichtlich nicht.
+6. Ab jetzt verlangt auch das Admin-Tool beim Start einen Login. Nur Konten mit „Administrator“ kommen hinein.
+
+Vergisst der einzige Administrator sein Passwort, gibt es keinen Selbstweg: `AUTH_ENABLED=false` setzen, Backend neu starten, im Admin-Tool „Einmalpasswort“ setzen, wieder `AUTH_ENABLED=true`. Wer Zugriff auf die `.env` hat, kann das also. Die `.env` muss deshalb geschützt bleiben.
+
+#### Technik
+
+- Login: `POST /api/auth/login`. Das JWT liegt in einem **HttpOnly**-Cookie `ts_session` (`Secure`, `SameSite=Lax`, Laufzeit `ACCESS_TOKEN_EXPIRE_MINUTES`, Standard 480); JavaScript kann es nicht lesen. Ein zweites, lesbares Cookie `ts_csrf` trägt den CSRF-Token, der bei jedem POST/PUT/DELETE im Header `X-CSRF-Token` mitgeschickt werden muss (er steckt auch als Claim im JWT).
+- Weitere Endpunkte: `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/change-password`, `POST /api/auth/admin/reset-password/{id}` (nur Admin), `GET /api/auth/config` (öffentlich: ist die Anmeldung aktiv?).
+- Rechte: Alle Router verlangen einen Login (`main.py`, `require_user`/`require_admin`). Normale Benutzer sehen und ändern nur ihre eigenen Zeiteinträge (`employee_id` wird gegen das Token geprüft, `created_by` kommt aus dem Token). Mitarbeiterverwaltung, Projekte, Kunden und Datensicherung sind nur für Administratoren (`is_admin`).
+- Datenbank: Migration `010_employee_auth.sql` (Spalten `username`, `password_hash`, `is_admin`, `must_change_password`, `password_changed_at`, `failed_login_count`, `locked_until` in `employees` und `employees_backup`).
+- **HTTPS:** TLS endet am Reverse Proxy (siehe `INSTALL_IIS_INTRANET.md`). In Produktion `COOKIE_SECURE=true` (Standard). Lokal über `http://` muss `COOKIE_SECURE=false` in `backend/.env` stehen, sonst schicken Browser und Admin-Tool die Cookies nicht mit.
+- Einstellungen (`backend/.env.example`): `AUTH_ENABLED`, `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `COOKIE_SECURE`, `CORS_ORIGINS` (JSON-Liste, kein `*`), `PASSWORD_MIN_LENGTH`, `MAX_FAILED_LOGINS`, `LOCKOUT_MINUTES`.
+- Sicherungen (`*_backup`, Datei-Export) von `employees` enthalten die Passwort-Hashes. Diese Dateien wie Zugangsdaten behandeln.
+- Test-Konto: `testheini` (normaler Benutzer, Testkonto in der echten Datenbank). Das Passwort steht nicht im Repository; ein Administrator setzt es bei Bedarf mit „Einmalpasswort“ neu.
 
 ### Export
 

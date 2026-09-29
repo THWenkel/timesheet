@@ -45,9 +45,14 @@ class EmployeeCreate(EmployeeBase):
     """
     Schema for creating a new employee (POST /api/employees).
 
-    Inherits all fields from EmployeeBase.
-    No additional fields needed for creation.
+    Login data is optional; the password is set separately by an administrator
+    (POST /api/auth/admin/reset-password/{id}).
     """
+
+    username: str | None = Field(
+        default=None, min_length=3, max_length=100, description="Login name (unique)"
+    )
+    is_admin: bool = Field(default=False, description="May use the admin client")
 
 
 class EmployeeUpdate(BaseModel):
@@ -73,6 +78,10 @@ class EmployeeUpdate(BaseModel):
         default=None,
         description="Set to False to soft-delete the employee",
     )
+    username: str | None = Field(
+        default=None, min_length=3, max_length=100, description="Login name (unique)"
+    )
+    is_admin: bool | None = Field(default=None, description="May use the admin client")
 
 
 class EmployeeRead(EmployeeBase):
@@ -92,6 +101,10 @@ class EmployeeRead(EmployeeBase):
     )
     created_at: datetime = Field(description="UTC timestamp of record creation")
     updated_at: datetime = Field(description="UTC timestamp of last modification")
+    username: str | None = Field(default=None, description="Login name")
+    is_admin: bool = Field(default=False, description="May use the admin client")
+    must_change_password: bool = Field(default=False, description="Password reset pending")
+    has_password: bool = Field(default=False, description="Whether a password is set")
     created_by: int | None = Field(default=None, description="employee.id who created this")
     updated_by: int | None = Field(default=None, description="employee.id who last updated this")
 

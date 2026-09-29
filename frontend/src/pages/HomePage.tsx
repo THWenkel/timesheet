@@ -5,7 +5,7 @@
 
    Layout:
    ┌─────────────────────────────────────────────────────────────┐
-   │  Employee Selector                                          │
+   │  Logged-in user (change password / log out)                 │
    ├──────────────────────┬──────────────────────────────────────┤
    │  Calendar            │  Entry form (TimePicker + Description)│
    │  (react-calendar)    │  + Save button                       │
@@ -17,8 +17,9 @@
    ============================================================================= */
 
 import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import type { components } from "@/api/generated";
-import { EmployeeSelector } from "@/components/EmployeeSelector";
+import { useAuth } from "@/auth/AuthContext";
 import { TimesheetCalendar } from "@/components/TimesheetCalendar";
 import { TimePickerInput } from "@/components/TimePickerInput";
 import { DescriptionInput } from "@/components/DescriptionInput";
@@ -34,7 +35,6 @@ import {
 } from "@/hooks/useTimesheetEntries";
 import { toISODateString, validateDailyLimit } from "@/utils/timeUtils";
 
-type EmployeeListItem = components["schemas"]["EmployeeListItem"];
 type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
 
 /**
@@ -47,8 +47,10 @@ type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
  *   - Form state (minutes, description)
  */
 export function HomePage(): React.JSX.Element {
-  // --- Selected employee ---
-  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
+  // --- The logged-in employee (timesheets are always entered for oneself) ---
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const selectedEmployee = user;
 
   // --- Calendar state ---
   const today = new Date();
@@ -67,10 +69,11 @@ export function HomePage(): React.JSX.Element {
   const [lastSaveWasUpdate, setLastSaveWasUpdate] = useState<boolean>(false);
 
   // --- API hooks ---
-  const {
-    datesWithEntries,
-    refetch: refetchCalendar,
-  } = useCalendarDates(selectedEmployee?.id ?? null, calendarYear, calendarMonth);
+  const { datesWithEntries, refetch: refetchCalendar } = useCalendarDates(
+    selectedEmployee?.id ?? null,
+    calendarYear,
+    calendarMonth,
+  );
 
   const {
     daySummary,
@@ -98,13 +101,9 @@ export function HomePage(): React.JSX.Element {
 
   // --- Handlers ---
 
-  const handleEmployeeSelect = (employee: EmployeeListItem): void => {
-    setSelectedEmployee(employee);
-    setSelectedDate(null);
-    setEditingEntry(null);
-    setMinutes(60);
-    setDescription("");
-    setSaveSuccess(false);
+  const handleLogout = async (): Promise<void> => {
+    await logout();
+    void navigate("/login", { replace: true });
   };
 
   const handleDateSelect = (date: Date): void => {
@@ -183,12 +182,15 @@ export function HomePage(): React.JSX.Element {
     <main className="home-page">
       <h1 className="home-page__title">Timesheet</h1>
 
-      {/* ── Employee Selector ── */}
-      <section className="home-page__employee-section">
-        <EmployeeSelector
-          selectedEmployeeId={selectedEmployee?.id ?? null}
-          onSelect={handleEmployeeSelect}
-        />
+      {/* ── Logged-in user ── */}
+      <section className="home-page__employee-section home-page__user-bar">
+        <span>
+          Signed in as <strong>{user?.display_name}</strong>
+        </span>
+        <Link to="/change-password">Change password</Link>
+        <button type="button" className="home-page__cancel-btn" onClick={() => void handleLogout()}>
+          Log out
+        </button>
       </section>
 
       {/* ── Main content grid ── */}
@@ -284,9 +286,7 @@ export function HomePage(): React.JSX.Element {
             </>
           ) : (
             <p className="home-page__no-date-hint">
-              {selectedEmployee !== null
-                ? "← Select a date in the calendar to add or view entries."
-                : "Select an employee above, then pick a date in the calendar."}
+              ← Select a date in the calendar to add or view entries.
             </p>
           )}
 

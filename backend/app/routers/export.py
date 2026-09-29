@@ -23,6 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core.security import AuthContext, ensure_employee_access, require_user
 from app.db.session import get_db
 from app.models.employee import Employee
 from app.schemas.timesheet import ExportFormat
@@ -105,6 +106,7 @@ def export_timesheets(
     from_date: date,
     to_date: date,
     db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
 ) -> StreamingResponse:
     """
     Export timesheet entries for an employee within a date range.
@@ -115,6 +117,8 @@ def export_timesheets(
       3. Generate the file bytes via the export service (CSV/Excel/PDF).
       4. Return a StreamingResponse with appropriate Content-Type and filename.
     """
+    ensure_employee_access(auth, employee_id)
+
     # --- Validate date range ---
     if from_date > to_date:
         raise HTTPException(

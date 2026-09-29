@@ -56,7 +56,7 @@ There are no backend or admin automated tests, and the frontend has Vitest confi
 
 `app/db/session.py` builds a raw ODBC connection string (URL-encoded into `mssql+pyodbc:///?odbc_connect=`) and runs `USE [WiTERP]` on every new connection. Settings come from `backend/.env` via `app/core/config.py`. `DB_PASSWORD` is required, so importing the app without it fails.
 
-Auth (`app/core/security.py`) is a middleware scaffold that is a no-op while `AUTH_ENABLED=false`. The frontend picks the employee from a dropdown.
+Auth (`app/core/security.py`, `routers/auth.py`): JWT in an HttpOnly cookie plus a CSRF header, enforced per router by the `require_user`/`require_admin` dependencies in `main.py`. These are a no-op while `AUTH_ENABLED=false` (default); the frontend always shows a login form. Migration 010 adds the login columns to `employees` (and `employees_backup`). Details: `AGENTS.md`.
 
 ### Schema changes: the SQL scripts are the real source of truth
 
@@ -71,7 +71,7 @@ Auth (`app/core/security.py`) is a middleware scaffold that is a no-op while `AU
 
 - Time is stored as **integer minutes**: multiples of 15, from 15 to 1440. The frontend converts to and from `hh:mm` in `src/utils/timeUtils.ts`.
 - Every table has audit columns (`created_at`, `updated_at`, `created_by`, `updated_by`), and every timesheet write carries an `employee_id`.
-- Deleting an employee or customer is a **deactivation** (`is_active`), never a hard delete, so existing entries and project links stay intact.
+- Deleting an employee or customer is a **deactivation** (`is_active`), so existing entries and project links stay intact. The only hard delete is `DELETE /api/employees/{id}` for an employee with no timesheet entries (the database would cascade-delete their entries otherwise); the API refuses it with 409 otherwise.
 - Projects belong to a customer and are assigned to employees through `project_allocations`. Budgets are in hours *or* person-days, and there is deliberately no conversion between them.
 - Customer country must be a code that exists in the `CountryCode2` lookup table.
 - Export: `GET /api/export?format=csv|excel|pdf&employee_id=&from_date=&to_date=` streams the file from `services/export_service.py`.

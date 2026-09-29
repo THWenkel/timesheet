@@ -10,7 +10,7 @@
 #   - Enable encrypted connection: set DB_ENCRYPT=yes and provide a valid TLS cert.
 # =============================================================================
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,7 +61,29 @@ class Settings(BaseSettings):
         default="change-me-before-production",
         description="JWT signing secret — MUST be changed before go-live",
     )
-    access_token_expire_minutes: int = Field(default=60)
+    access_token_expire_minutes: int = Field(default=480)  # one working day
+    # Session cookie. Secure=True means it is only sent over HTTPS (TLS terminates at the
+    # reverse proxy). Set COOKIE_SECURE=false only for local development over plain HTTP.
+    cookie_secure: bool = Field(default=True)
+    cookie_name: str = Field(default="ts_session")
+    csrf_cookie_name: str = Field(default="ts_csrf")
+    # Origins allowed to call the API with credentials (comma separated in .env).
+    cors_origins: list[str] = Field(default=["http://localhost:5173"])
+    # Password policy and brute-force protection
+    password_min_length: int = Field(default=10)
+    max_failed_logins: int = Field(default=5)
+    lockout_minutes: int = Field(default=15)
+
+    @model_validator(mode="after")
+    def _check_auth_secret(self) -> Settings:
+        """Refuse to start with auth enabled and a weak or default signing secret."""
+        if self.auth_enabled and (
+            self.secret_key == "change-me-before-production"  # noqa: S105
+            or len(self.secret_key) < 32
+        ):
+            msg = "AUTH_ENABLED=true requires SECRET_KEY with at least 32 characters"
+            raise ValueError(msg)
+        return self
 
 
 # Module-level settings instance — import this everywhere

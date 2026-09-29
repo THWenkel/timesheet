@@ -1,0 +1,95 @@
+<Window x:Class="Timesheet.Admin.Views.BackupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Datensicherung"
+        Width="900"
+        Height="680"
+        MinWidth="760"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource CanvasBrush}">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="28" Text="Datensicherung" />
+            <TextBlock Margin="0,6,0,0" Foreground="#5B6864"
+                       Text="Tabellen auswählen, dann in die Datenbank oder in Dateien sichern bzw. wiederherstellen" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,12" Orientation="Horizontal">
+            <Button Command="{Binding SelectAllCommand}" Content="Alle auswählen" />
+            <Button Command="{Binding SelectNoneCommand}" Content="Keine" />
+            <Button Command="{Binding LoadCommand}" Content="Aktualisieren" />
+            <Button Click="Exit_Click" Margin="12,0,0,0" Content="Schließen" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="White"
+                BorderBrush="#D8DEDB" BorderThickness="1" CornerRadius="6">
+            <DataGrid ItemsSource="{Binding Tables}"
+                      AutoGenerateColumns="False" CanUserAddRows="False"
+                      SelectionUnit="FullRow" GridLinesVisibility="Horizontal"
+                      RowHeaderWidth="0" BorderThickness="0"
+                      AlternatingRowBackground="#F7F9F8">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Auswahl" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                    <DataGridTextColumn Header="Tabelle" Binding="{Binding Name}" IsReadOnly="True" Width="1.2*" />
+                    <DataGridTextColumn Header="Zeilen" Binding="{Binding RowCount}" IsReadOnly="True" Width="90" />
+                    <DataGridTextColumn Header="Sicherungstabelle" Binding="{Binding BackupTable}" IsReadOnly="True" Width="1.4*" />
+                    <DataGridTextColumn Header="Stand der Sicherung" Binding="{Binding BackupState}" IsReadOnly="True" Width="1.4*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Header="Sicherung" Margin="0,0,8,0" Padding="10">
+                <StackPanel>
+                    <Button Command="{Binding BackupToDatabaseCommand}"
+                            Background="{StaticResource AccentBrush}" Foreground="White"
+                            HorizontalAlignment="Left"
+                            Content="Sicherung in Datenbank" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <CheckBox IsChecked="{Binding ExportCsv}" Content="CSV" Margin="0,0,16,0" />
+                        <CheckBox IsChecked="{Binding ExportJson}" Content="JSON" />
+                    </StackPanel>
+                    <Button Command="{Binding BackupToFilesCommand}"
+                            HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Content="Sicherung in Dateien …" />
+                    <TextBlock Margin="0,8,0,0" Foreground="#5B6864" TextWrapping="Wrap"
+                               Text="{Binding BackupFolder, StringFormat=Letzter Ordner: {0}}" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="1" Header="Wiederherstellung" Margin="8,0,0,0" Padding="10">
+                <StackPanel>
+                    <Button Command="{Binding RestoreFromDatabaseCommand}"
+                            HorizontalAlignment="Left"
+                            Content="Aus Datenbank-Sicherung …" />
+                    <Button Command="{Binding RestoreFromFilesCommand}"
+                            HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Content="Aus CSV/JSON-Dateien …" />
+                    <TextBlock Margin="0,8,0,0" Foreground="#5B6864" TextWrapping="Wrap"
+                               Text="Überschreibt vorhandene Datensätze, löscht nichts. Vorher wird eine Sicherheitskopie in Dateien angelegt und zweimal bestätigt." />
+                    <TextBlock Margin="0,8,0,0" Foreground="#A12828" TextWrapping="Wrap"
+                               Text="Achtung: Die Sicherung der Tabelle employees enthält Passwort-Hashes. Dateien wie Zugangsdaten schützen." />
+                </StackPanel>
+            </GroupBox>
+        </Grid>
+
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <TextBlock Foreground="#A12828" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+            <TextBlock HorizontalAlignment="Right" Foreground="#5B6864" Text="{Binding StatusText}" />
+        </Grid>
+    </Grid>
+</Window>

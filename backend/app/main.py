@@ -15,13 +15,13 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.security import auth_middleware
+from app.core.security import require_admin, require_user, security_headers_middleware
 from app.db.session import check_connection
-from app.routers import employees, export, projects, timesheets
+from app.routers import auth, backup, employees, export, projects, timesheets
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         )
     else:
         logger.warning(
-            "Cannot reach database %s/%s. "
-            "Check connection settings and ODBC driver installation.",
+            "Cannot reach database %s/%s. Check connection settings and ODBC driver installation.",
             settings.db_server,
             settings.db_name,
         )
@@ -85,18 +84,19 @@ app = FastAPI(
 # Middleware
 # =============================================================================
 
-# Authentication middleware scaffold (no-op in v1 when AUTH_ENABLED=False)
-# ⚠️  TODO: Enable by setting AUTH_ENABLED=true in .env (v2+)
-app.middleware("http")(auth_middleware)
+# Security headers (nosniff, no-store, HSTS when cookies are HTTPS-only).
+# Authentication itself is enforced per router via dependencies, see "Routers" below.
+app.middleware("http")(security_headers_middleware)
 
 # CORS middleware
 # In development the Vite proxy handles /api → no CORS issues for the frontend.
 # This CORS config is provided for cases where the API is accessed directly
 # (e.g. Swagger UI, curl, external clients).
-# ⚠️  TODO: Restrict origins to the production frontend domain before go-live.
+# Allowed origins come from CORS_ORIGINS (JSON list in .env). With cookies
+# (allow_credentials) the wildcard "*" is not allowed by browsers.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict this in production!
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -105,12 +105,18 @@ app.add_middleware(
 # =============================================================================
 # Routers
 # =============================================================================
-app.include_router(employees.router)
-app.include_router(timesheets.router)
-app.include_router(export.router)
-app.include_router(projects.router)
-app.include_router(projects.customers_router)
-app.include_router(projects.country_codes_router)
+# Default-deny: every router requires a logged-in user (no-op while AUTH_ENABLED=false).
+# Routes tighten this themselves (own-data checks, admin only). Only /api/auth is open.
+_user = [Depends(require_user)]
+_admin = [Depends(require_admin)]
+app.include_router(auth.router)
+app.include_router(employees.router, dependencies=_user)
+app.include_router(timesheets.router, dependencies=_user)
+app.include_router(export.router, dependencies=_user)
+app.include_router(backup.router, dependencies=_admin)
+app.include_router(projects.router, dependencies=_admin)
+app.include_router(projects.customers_router, dependencies=_admin)
+app.include_router(projects.country_codes_router, dependencies=_user)
 
 
 # =============================================================================

@@ -12,7 +12,8 @@ public partial class MainWindowViewModel(
     IProjectApiClient projectApiClient,
     IUserDialogService dialogService,
     IProjectWindowService projectWindowService,
-    ICustomerWindowService customerWindowService) : ObservableObject
+    ICustomerWindowService customerWindowService,
+    IBackupWindowService backupWindowService) : ObservableObject
 {
     [ObservableProperty]
     private ObservableCollection<Employee> employees = [];
@@ -23,6 +24,8 @@ public partial class MainWindowViewModel(
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeactivateCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResetPasswordCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     private Employee? selectedEmployee;
 
     partial void OnSelectedEmployeeChanged(Employee? value)
@@ -42,6 +45,9 @@ public partial class MainWindowViewModel(
     [NotifyCanExecuteChangedFor(nameof(LoadCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenProjectsCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenCustomersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenBackupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResetPasswordCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -119,6 +125,41 @@ public partial class MainWindowViewModel(
         });
     }
 
+    [RelayCommand(CanExecute = nameof(CanModifyEmployee))]
+    private async Task DeleteAsync()
+    {
+        var employee = SelectedEmployee;
+        if (employee is null || !dialogService.ConfirmEmployeeDeletion(employee))
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            await employeeApiClient.DeleteAsync(employee.Id);
+            await RefreshAsync();
+            StatusText = "Benutzer wurde gelöscht";
+        });
+    }
+
+    [RelayCommand(CanExecute = nameof(CanModifyEmployee))]
+    private async Task ResetPasswordAsync()
+    {
+        var employee = SelectedEmployee;
+        if (employee is null || !dialogService.ConfirmPasswordReset(employee))
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            var result = await employeeApiClient.ResetPasswordAsync(employee.Id);
+            await RefreshAsync(employee.Id);
+            dialogService.ShowTemporaryPassword(result);
+            StatusText = "Einmalpasswort wurde gesetzt";
+        });
+    }
+
     [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private async Task OpenProjectsAsync()
     {
@@ -128,6 +169,9 @@ public partial class MainWindowViewModel(
 
     [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void OpenCustomers() => customerWindowService.Show();
+
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
+    private void OpenBackup() => backupWindowService.Show();
 
     [RelayCommand]
     private async Task LoadEmployeeProjectsAsync()

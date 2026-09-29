@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -103,6 +103,17 @@ class Employee(Base):
     )
 
     # -------------------------------------------------------------------------
+    # Login data (migration 010). password_hash never leaves the backend.
+    # -------------------------------------------------------------------------
+    username: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    failed_login_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # -------------------------------------------------------------------------
     # Relationships
     # -------------------------------------------------------------------------
     timesheet_entries: Mapped[list[TimesheetEntry]] = relationship(  # type: ignore[name-defined]
@@ -125,6 +136,11 @@ class Employee(Base):
         Used in the frontend employee selector dropdown.
         """
         return f"{self.surname} {self.lastname}"
+
+    @property
+    def has_password(self) -> bool:
+        """True if a password hash is stored (the hash itself is never exposed)."""
+        return self.password_hash is not None
 
     def __repr__(self) -> str:
         return f"Employee(id={self.id!r}, surname={self.surname!r}, lastname={self.lastname!r})"
