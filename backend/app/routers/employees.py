@@ -63,7 +63,7 @@ def _ensure_username_free(db: Session, username: str | None, own_id: int | None)
 def list_employees(
     include_inactive: bool = False,
     db: Session = Depends(get_db),
-    _auth: AuthContext | None = Depends(require_user),
+    _admin: AuthContext | None = Depends(require_admin),
 ) -> list[Employee]:
     """
     Retrieve all employees from the database.

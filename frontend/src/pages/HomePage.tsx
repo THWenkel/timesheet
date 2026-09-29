@@ -20,6 +20,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { components } from "@/api/generated";
 import { useAuth } from "@/auth/AuthContext";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import { TimesheetCalendar } from "@/components/TimesheetCalendar";
 import { TimePickerInput } from "@/components/TimePickerInput";
 import { DescriptionInput } from "@/components/DescriptionInput";
@@ -35,6 +36,7 @@ import {
 } from "@/hooks/useTimesheetEntries";
 import { toISODateString, validateDailyLimit } from "@/utils/timeUtils";
 
+type EmployeeListItem = components["schemas"]["EmployeeListItem"];
 type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
 
 /**
@@ -47,10 +49,13 @@ type TimesheetEntryRead = components["schemas"]["TimesheetEntryRead"];
  *   - Form state (minutes, description)
  */
 export function HomePage(): React.JSX.Element {
-  // --- The logged-in employee (timesheets are always entered for oneself) ---
+  // --- Whose timesheet is shown: the logged-in employee, or (administrators only) a chosen one ---
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const selectedEmployee = user;
+  const [chosenEmployee, setChosenEmployee] = useState<EmployeeListItem | null>(null);
+  const isAdmin = user?.is_admin === true;
+  const selectedEmployee = isAdmin && chosenEmployee !== null ? chosenEmployee : user;
+  const isOwnTimesheet = selectedEmployee?.id === user?.id;
 
   // --- Calendar state ---
   const today = new Date();
@@ -100,6 +105,15 @@ export function HomePage(): React.JSX.Element {
   const dailyLimitError = validateDailyLimit(otherDayMinutes, minutes);
 
   // --- Handlers ---
+
+  const handleEmployeeSelect = (employee: EmployeeListItem): void => {
+    setChosenEmployee(employee);
+    setSelectedDate(null);
+    setEditingEntry(null);
+    setMinutes(60);
+    setDescription("");
+    setSaveSuccess(false);
+  };
 
   const handleLogout = async (): Promise<void> => {
     await logout();
@@ -192,6 +206,22 @@ export function HomePage(): React.JSX.Element {
           Log out
         </button>
       </section>
+
+      {/* ── Administrators: choose whose timesheet to view and edit ── */}
+      {isAdmin && (
+        <section className="home-page__employee-section">
+          <EmployeeSelector
+            selectedEmployeeId={selectedEmployee?.id ?? null}
+            onSelect={handleEmployeeSelect}
+          />
+          {!isOwnTimesheet && (
+            <p className="home-page__edit-banner" role="status">
+              You are viewing and editing the timesheet of{" "}
+              <strong>{selectedEmployee?.display_name}</strong>.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ── Main content grid ── */}
       <div className="home-page__grid">

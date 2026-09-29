@@ -30,7 +30,7 @@ Die Liste zeigt nicht, ob ein Einmalpasswort noch offen ist, die Person also ihr
 | | Normaler Benutzer | Administrator |
 | --- | --- | --- |
 | Web-App: eigene Zeiten erfassen, ansehen, exportieren | ja | ja |
-| Zeiten anderer Mitarbeiter sehen oder ändern | nein | Backend erlaubt es, in der Oberfläche **noch nicht bedienbar** (die Web-App zeigt nur die eigenen Zeiten) |
+| Zeiten anderer Mitarbeiter sehen, ändern, exportieren | nein | ja (Auswahl in der Web-App) |
 | Admin-Tool starten (bei aktivem Login) | nein | ja |
 | Benutzer, Kunden, Projekte verwalten | nein | ja |
 | Datensicherung und Wiederherstellung | nein | ja |
@@ -66,6 +66,10 @@ Dabei passiert:
 Den Benutzer markieren und **Deaktivieren** klicken. Der Benutzer kann sich nicht mehr anmelden, eine laufende Sitzung endet sofort. Die Zeiteinträge bleiben erhalten. Wieder freigeben: **Bearbeiten** → Haken bei „Benutzer ist aktiv“.
 
 Ein Administrator kann **sein eigenes Konto nicht deaktivieren** und sich **das eigene Adminrecht nicht entziehen**. Das Backend lehnt beides ab, damit sich niemand versehentlich aussperrt. Das macht bei Bedarf ein anderer Administrator.
+
+### Zeiten anderer Mitarbeiter ansehen und ändern
+
+Nur Administratoren sehen in der Web-App oben unter „Signed in as …“ zusätzlich die Auswahl **Employee**. Dort wählst du den Mitarbeiter, dessen Zeiten du sehen willst. Kalender, Tages- und Wochenansicht, Erfassen, Ändern und der Export arbeiten dann für diesen Mitarbeiter. Ein Hinweis „You are viewing and editing the timesheet of …“ zeigt, dass es nicht die eigenen Zeiten sind. Die Auswahl zeigt nur aktive Mitarbeiter. Bei Einträgen, die ein Administrator für jemand anderen anlegt oder ändert, steht der Administrator als „angelegt von“ bzw. „geändert von“ im Datensatz. Normale Benutzer haben die Auswahl nicht und können die Liste der Mitarbeiter auch nicht über die API abrufen.
 
 ### Benutzer löschen
 
