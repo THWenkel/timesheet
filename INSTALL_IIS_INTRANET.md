@@ -460,10 +460,9 @@ Falls die Tabellen in der WiTERP-Datenbank noch nicht existieren:
 cd C:\Apps\timesheet\backend
 .\.venv\Scripts\Activate.ps1
 
-# Alle Tabellen erstellen (empfohlen — ORM-basiert via Alembic)
-alembic upgrade head
-
-# Alternativ: Raw SQL Script direkt gegen SQL Server ausführen
+# Ausstehende SQL-Migrationen anzeigen und anwenden
+# (Alembic ist eingerichtet, aber leer und wird NICHT verwendet)
+python cli.py --password DEIN_PASSWORT status
 python cli.py --password DEIN_PASSWORT migrate
 ```
 
@@ -488,36 +487,48 @@ Nach Abschluss aller Schritte folgendes überprüfen:
 
 ## Update-Prozess (für künftige Versionen)
 
+> **Achtung:** Schema-Änderungen laufen über `python cli.py migrate` (SQL-Skripte in `backend/migrations/`), **nicht** über Alembic. `alembic/versions/` ist leer, `alembic upgrade head` würde nichts anwenden, und das Backend würde mit dem neuen Code an fehlenden Spalten scheitern.
+
 ```powershell
+# 0. VOR dem Update: Datensicherung (Admin-Tool -> Sicherung: in die Datenbank UND in Dateien),
+#    bei größeren Änderungen zusätzlich eine SQL-Server-Sicherung der Datenbank WiTERP.
+
 # 1. Neuen Code holen
 cd C:\Apps\timesheet
 git pull
 
-# 2. Python-Pakete aktualisieren
+# 2. Python-Pakete aktualisieren (neu: PyJWT, argon2-cffi)
 cd backend
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 python -m pip check
 
-# 3. Datenbankmigrationen anwenden
-alembic upgrade head
+# 3. Datenbankmigrationen prüfen und anwenden
+$pw = (Select-String -Path .env -Pattern '^DB_PASSWORD=').Line.Split('=', 2)[1].Trim('"')
+python cli.py --password $pw status      # zeigt, was noch aussteht
+python cli.py --password $pw migrate     # wendet ausstehende Skripte an (je Skript eine Transaktion)
 
 # 4. Backend-Dienst neu starten
 net stop TimesheetBackend
 net start TimesheetBackend
+Invoke-RestMethod http://localhost:8000/health        # Erwartet: status ok, database ok
 
 # 5. Frontend neu bauen (auf dem Entwicklungsrechner)
 #    cd C:\Develop\timesheet\frontend
 #    npm install
 #    npm run generate-api
-#    npm run build
+#    npm run build            # Pfadbetrieb:  http://intranet.wenkel.local/timesheet/
+#    npm run build:domain     # Domain-Betrieb hinter dem Proxy: https://timesheet.wenkel.de/
 
-# 6. Neuen dist/-Inhalt auf den Server kopieren
+# 6. Vorherigen Stand sichern, dann neuen dist/-Inhalt auf den Server kopieren
+Copy-Item -Path "C:\inetpub\wwwroot\intranet.wenkel.local\timesheet" `
+    -Destination "C:\inetpub\timesheet_vorher_$(Get-Date -Format yyyyMMdd_HHmm)" -Recurse
 Copy-Item -Path "C:\Develop\timesheet\frontend\dist\*" `
     -Destination "C:\inetpub\wwwroot\intranet.wenkel.local\timesheet" `
     -Recurse -Force
 
-# 7. PDF-Export über IIS prüfen
+# 7. Prüfen: Der PDF-Export braucht bei AUTH_ENABLED=true eine Anmeldung. Deshalb im Browser
+#    anmelden und einen Export als PDF herunterladen (oder bei AUTH_ENABLED=false per URL):
 $pdfUrl = "http://intranet.wenkel.local/timesheet/api/export/" + `
   "?format=pdf&employee_id=1&from_date=2026-08-01&to_date=2026-08-31"
 $response = Invoke-WebRequest -Uri $pdfUrl -UseBasicParsing
@@ -526,6 +537,8 @@ $response.StatusCode                 # Erwartet: 200
 $response.Headers["Content-Type"]   # Erwartet: application/pdf
 $signature                           # Erwartet: %PDF-
 ```
+
+**Rückgängig machen:** Den Ordner `timesheet_vorher_…` zurückkopieren, mit `git checkout <vorheriger-Tag>` den alten Code holen und den Dienst neu starten. Die Migrationen sind rein additiv (neue Tabellen und Spalten mit Standardwerten), der alte Code läuft auch mit dem neuen Schema.
 
 ---
 

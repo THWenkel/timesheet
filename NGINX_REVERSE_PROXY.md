@@ -4,7 +4,7 @@ Diese Anleitung ist für die Person, die den nginx-Reverse-Proxy (Docker, eigene
 
 ## Überblick
 
-```
+``` text
 Browser ──HTTPS──▶ timesheet.wenkel.de ──[nginx-Proxy]──HTTP──▶ intranet.wenkel.local (IIS)
    /assets/a.js       →  /timesheet/assets/a.js          statische Dateien (IIS)
    /api/employees/    →  /timesheet/api/employees/       IIS leitet an das Backend (localhost:8000)
@@ -163,7 +163,7 @@ client_max_body_size 25m;
 ### Was die einzelnen Teile bewirken
 
 | Teil | Zweck |
-|---|---|
+| --- | --- |
 | `rewrite ^/(.*)$ /timesheet/$1 break;` | setzt `/timesheet/` vor jeden Pfad, der Query-String bleibt erhalten |
 | `proxy_set_header Host intranet.wenkel.local;` | die IIS-Site ist an diesen Hostnamen gebunden, mit dem öffentlichen Namen würde der IIS die falsche Site treffen |
 | `X-Forwarded-Host/-Proto/-For`, `X-Real-IP` | der Backend-Stack erfährt Originalname, Protokoll und Client-Adresse |

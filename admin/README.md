@@ -40,8 +40,20 @@ $env:TIMESHEET_API_URL = "http://server:8000/"
 dotnet run --project admin/Timesheet.Admin/Timesheet.Admin.csproj
 ```
 
-Deleting an employee is deliberately implemented as deactivation so existing
-timesheet entries and audit references remain intact.
+Employees are normally **deactivated**, so existing timesheet entries and audit
+references remain intact. The **Löschen** button removes an employee for good, but
+only if the employee has no timesheet entries (the API refuses it otherwise).
+
+### Installing on the admin PCs
+
+```powershell
+dotnet publish admin/Timesheet.Admin/Timesheet.Admin.csproj -c Release -r win-x64 --self-contained false -o publish
+```
+
+Copy the `publish` folder to the admin PCs (the .NET 10 Desktop Runtime must be installed there)
+and start `Timesheet.Admin.exe`. The API address comes from the environment variable
+`TIMESHEET_API_URL`, for production `https://timesheet.wenkel.de/` (set it once per PC with
+`setx TIMESHEET_API_URL "https://timesheet.wenkel.de/"`, then restart the tool).
 
 ## Customer management
 
