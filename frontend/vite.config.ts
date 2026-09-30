@@ -6,6 +6,7 @@
 // Key configuration:
 //   - React plugin with fast HMR
 //   - Path alias @/ → src/ for clean imports
+//   - Base path from VITE_BASE_PATH (default /timesheet/), see .env.domain
 //   - Dev server proxy: /api → http://localhost:8000
 //     This means the frontend never makes cross-origin requests in development —
 //     no CORS configuration needed on the backend for local development.
@@ -21,7 +22,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: "/timesheet/",
+    // Public base path. "/timesheet/" under IIS path routing (default); "/" for the own
+    // domain behind the reverse proxy (npm run build:domain, see .env.domain).
+    base: env.VITE_BASE_PATH || "/timesheet/",
 
     resolve: {
       alias: {

@@ -379,6 +379,7 @@ Vergisst der einzige Administrator sein Passwort, gibt es keinen Selbstweg: `AUT
 - **HTTPS:** TLS endet am Reverse Proxy (siehe `INSTALL_IIS_INTRANET.md`). In Produktion `COOKIE_SECURE=true` (Standard). Lokal über `http://` muss `COOKIE_SECURE=false` in `backend/.env` stehen, sonst schicken Browser und Admin-Tool die Cookies nicht mit.
 - Einstellungen (`backend/.env.example`): `AUTH_ENABLED`, `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `COOKIE_SECURE`, `CORS_ORIGINS` (JSON-Liste, kein `*`), `PASSWORD_MIN_LENGTH`, `MAX_FAILED_LOGINS`, `LOCKOUT_MINUTES`.
 - Sicherungen (`*_backup`, Datei-Export) von `employees` enthalten die Passwort-Hashes. Diese Dateien wie Zugangsdaten behandeln.
+- **Reverse-Proxy (nginx, Domain `timesheet.wenkel.de`) und IIS-Betrieb dahinter:** [NGINX_REVERSE_PROXY.md](NGINX_REVERSE_PROXY.md), Konfigurationsdateien in `deploy/nginx-proxy/`. Frontend-Build für die Domain: `npm run build:domain`.
 - Test-Konto: `testheini` (normaler Benutzer, Testkonto in der echten Datenbank). Das Passwort steht nicht im Repository; ein Administrator setzt es bei Bedarf mit „Einmalpasswort“ neu.
 
 ### Export
