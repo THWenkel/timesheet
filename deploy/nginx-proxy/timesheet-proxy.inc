@@ -1,16 +1,13 @@
 # =============================================================================
 # timesheet-proxy.inc
 #
-# Gemeinsame Proxy-Direktiven fuer timesheet.wenkel.de. Wird in jede location
-# von timesheet.wenkel.de.conf eingebunden:
-#     include /etc/nginx/snippets/timesheet-proxy.inc;
+# Teil 3 von 3 fuer https://cloudserver2.hopto.org/timesheet/ (Path-Routing).
+# Gemeinsame Proxy-Direktiven, eingebunden in jede location von timesheet-locations.inc:
+#     include /etc/nginx/conf.d/timesheet-proxy.inc;
 # =============================================================================
 
-# Die App liegt im IIS unter /timesheet/. Oeffentlich steht sie an der Wurzel der
-# Domain, deshalb kommt vor jeden Pfad /timesheet/ (Query-String bleibt erhalten).
-#   /assets/a.js    -> /timesheet/assets/a.js
-#   /api/employees/ -> /timesheet/api/employees/   (IIS leitet an das Backend weiter)
-rewrite ^/(.*)$ /timesheet/$1 break;
+# Kein Umschreiben: Die App liegt im IIS unter /timesheet/ und oeffentlich ebenfalls.
+# Ohne URI hinter proxy_pass reicht nginx den Pfad samt Query-String unveraendert durch.
 proxy_pass http://timesheet_iis;
 
 proxy_http_version 1.1;
@@ -25,11 +22,15 @@ proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
 proxy_set_header X-Real-IP         $remote_addr;
 
-# Falls der IIS doch einmal mit seinem internen Namen umleitet.
-proxy_redirect http://intranet.wenkel.local/timesheet/ https://$host/;
+# Falls der IIS mit seinem internen Namen umleitet (z. B. Verzeichnis ohne Schraegstrich).
+proxy_redirect http://intranet.wenkel.local/ https://$host/;
 
-# Das Backend sendet bei COOKIE_SECURE=true selbst einen HSTS-Header. Der Proxy setzt
-# ihn im server-Block, damit er nur einmal in der Antwort steht.
+# Der Host cloudserver2.hopto.org bedient auch andere Anwendungen. Das Session-Cookie
+# der App (Path=/) wird deshalb auf /timesheet/ beschraenkt und wird nur dorthin gesendet.
+proxy_cookie_path / /timesheet/;
+
+# Das Backend sendet bei COOKIE_SECURE=true selbst einen HSTS-Header. Ob und wie HSTS
+# fuer den Host gesetzt wird, entscheidet der bestehende server-Block, nicht die App.
 proxy_hide_header Strict-Transport-Security;
 
 # PDF-/Excel-Export und Restore-Import koennen dauern bzw. gross sein.
