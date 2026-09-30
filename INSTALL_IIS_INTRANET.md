@@ -517,8 +517,9 @@ Invoke-RestMethod http://localhost:8000/health        # Erwartet: status ok, dat
 #    cd C:\Develop\timesheet\frontend
 #    npm install
 #    npm run generate-api
-#    npm run build            # Pfadbetrieb:  http://intranet.wenkel.local/timesheet/
-#    npm run build:domain     # Domain-Betrieb hinter dem Proxy: https://timesheet.wenkel.de/
+#    npm run build:path       # Pfadbetrieb, auch hinter dem Proxy: https://cloudserver2.hopto.org/timesheet/
+#    npm run build:domain     # spaeter: Domain-Betrieb hinter dem Proxy: https://timesheet.wenkel.de/
+#    (Der normale "npm run build" brennt VITE_API_URL=http://localhost:8000 aus frontend/.env ein.)
 
 # 6. Vorherigen Stand sichern, dann neuen dist/-Inhalt auf den Server kopieren
 Copy-Item -Path "C:\inetpub\wwwroot\intranet.wenkel.local\timesheet" `
@@ -591,19 +592,19 @@ Netzwerkzugang ist das akzeptabel. Eine langfristige Migration auf einen aktuell
 
 ---
 
-## Betrieb hinter dem Reverse-Proxy mit eigener Domain (https://timesheet.wenkel.de/)
+## Betrieb hinter dem Reverse-Proxy (https://cloudserver2.hopto.org/timesheet/)
 
-Der nginx-Reverse-Proxy (Docker, eigenes Repository) nimmt die Anfragen aus dem Internet per HTTPS an und leitet sie per **HTTP** an diesen IIS weiter. Dafür gilt:
+Der nginx-Reverse-Proxy (Docker, eigenes Repository) nimmt die Anfragen aus dem Internet per HTTPS an und leitet sie per **HTTP** an diesen IIS weiter. Der Pfad bleibt dabei gleich (`/timesheet/…`), der Proxy schreibt nichts um. Dafür gilt:
 
-1. **Frontend mit dem Basispfad `/` bauen** und in denselben IIS-Ordner `...\timesheet` kopieren wie bisher:
+1. **Frontend bauen** und in denselben IIS-Ordner `...\timesheet` kopieren wie bisher:
    ```powershell
    cd C:\Develop\timesheet\frontend
-   npm run build:domain
+   npm run build:path
    ```
-   `build:domain` nutzt `frontend/.env.domain` und ignoriert `VITE_API_URL` aus `frontend/.env`. Der normale `npm run build` baut weiter für `/timesheet/`. **Achtung:** Ein normaler Build mit vorhandener `frontend/.env` brennt `VITE_API_URL=http://localhost:8000` ins Bundle, dann ruft der Browser `localhost` an. Die `.env` darf auf dem Build-Rechner `VITE_API_URL` nicht setzen, oder man nutzt `build:domain`.
-2. Der Proxy setzt vor jeden Pfad `/timesheet/`. Die IIS-Regeln in der `web.config` (Abschnitt oben) bleiben unverändert.
-3. In `backend/.env`: `COOKIE_SECURE=true`, `CORS_ORIGINS=["https://timesheet.wenkel.de"]`, `AUTH_ENABLED=true`, `SECRET_KEY` mit mindestens 32 Zeichen.
+   `build:path` nutzt `frontend/.env.proxypath` (Basispfad `/timesheet/`, API unter `/timesheet/api`) und überschreibt `VITE_API_URL` aus `frontend/.env`. **Achtung:** Ein normaler `npm run build` mit vorhandener `frontend/.env` brennt `VITE_API_URL=http://localhost:8000` ins Bundle, dann ruft der Browser `localhost` an.
+2. Die IIS-Regeln in der `web.config` (Abschnitt oben) bleiben unverändert.
+3. In `backend/.env`: `COOKIE_SECURE=true`, `CORS_ORIGINS=["https://cloudserver2.hopto.org"]`, `AUTH_ENABLED=true`, `SECRET_KEY` mit mindestens 32 Zeichen.
 4. **Keine http→https-Umleitung im IIS** einrichten (Schritt 8 entfällt für diesen Betrieb). Der Proxy spricht HTTP, sie würde eine Endlosschleife erzeugen.
-5. Mit diesem Build funktioniert der **direkte** Aufruf `http://intranet.wenkel.local/timesheet/` nicht mehr. Alle Nutzer und das Admin-Tool gehen über `https://timesheet.wenkel.de/`.
+5. Mit `COOKIE_SECURE=true` funktioniert die **Anmeldung** über `http://intranet.wenkel.local/timesheet/` nicht mehr (der Browser speichert ein `Secure`-Cookie nicht über HTTP). Alle Nutzer und das Admin-Tool gehen über `https://cloudserver2.hopto.org/timesheet/`.
 
-Die komplette Proxy-Konfiguration, die Prüfliste und die Fallstricke stehen in [NGINX_REVERSE_PROXY.md](NGINX_REVERSE_PROXY.md).
+Die komplette Proxy-Konfiguration, die Prüfliste und die Fallstricke stehen in [NGINX_REVERSE_PROXY.md](NGINX_REVERSE_PROXY.md). Die spätere Umstellung auf eine eigene Domain (`timesheet.wenkel.de`) ist in [NGINX_REVERSE_PROXY_DOMAIN.md](NGINX_REVERSE_PROXY_DOMAIN.md) beschrieben.

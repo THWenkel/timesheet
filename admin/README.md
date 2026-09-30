@@ -52,8 +52,9 @@ dotnet publish admin/Timesheet.Admin/Timesheet.Admin.csproj -c Release -r win-x6
 
 Copy the `publish` folder to the admin PCs (the .NET 10 Desktop Runtime must be installed there)
 and start `Timesheet.Admin.exe`. The API address comes from the environment variable
-`TIMESHEET_API_URL`, for production `https://timesheet.wenkel.de/` (set it once per PC with
-`setx TIMESHEET_API_URL "https://timesheet.wenkel.de/"`, then restart the tool).
+`TIMESHEET_API_URL`, for production `https://cloudserver2.hopto.org/timesheet/` (set it once per
+PC with `setx TIMESHEET_API_URL "https://cloudserver2.hopto.org/timesheet/"`, then restart the
+tool). Keep the trailing slash, otherwise the `/timesheet` path is lost.
 
 ## Customer management
 

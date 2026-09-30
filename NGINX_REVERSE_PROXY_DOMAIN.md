@@ -1,5 +1,7 @@
 # nginx-Reverse-Proxy für timesheet.wenkel.de
 
+> **Für später.** Aktuell läuft der Betrieb über Path-Routing, siehe [NGINX_REVERSE_PROXY.md](NGINX_REVERSE_PROXY.md). Diese Anleitung gilt erst nach der Umstellung des Proxys auf Domain-Routing (eigener Name, eigenes Zertifikat). Die Dateien liegen unter `deploy/nginx-proxy/domain-based/`, dazu gehört das Frontend mit `npm run build:domain`.
+
 Diese Anleitung ist für die Person, die den nginx-Reverse-Proxy (Docker, eigenes Git-Repository) betreut. Sie enthält alles, was dort eingetragen werden muss, damit die Timesheet-Anwendung unter **https://timesheet.wenkel.de/** aus dem Internet erreichbar ist. Die Anwendung selbst läuft weiter unter IIS.
 
 ## Überblick
@@ -94,7 +96,7 @@ server {
     # Zusaetzliche Schicht. Der Login mit Administrator-Recht ist weiterhin Pflicht.
     location ~ ^/api/(backup|projects|customers|employees/admin|auth/admin)(/|$) {
         # <<< ANPASSEN >>> eigene Firmennetz-Adressbereiche eintragen (Quelladresse, wie sie
-        # beim Proxy ankommt, siehe NGINX_REVERSE_PROXY.md "Fallstricke")
+        # beim Proxy ankommt, siehe NGINX_REVERSE_PROXY_DOMAIN.md "Fallstricke")
         allow 10.0.0.0/8;
         allow 172.16.0.0/12;
         allow 192.168.0.0/16;
