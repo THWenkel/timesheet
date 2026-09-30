@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         Title="Timesheet Administration"
         Height="680"
-        Width="1080"
+        Width="1158"
         MinHeight="520"
         MinWidth="760"
         WindowStartupLocation="CenterScreen"
