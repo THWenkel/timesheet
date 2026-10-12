@@ -43,7 +43,7 @@ Admin:
 
 ```powershell
 dotnet build admin/Timesheet.Admin/Timesheet.Admin.csproj
-dotnet run --project admin/Timesheet.Admin/Timesheet.Admin.csproj   # TIMESHEET_API_URL overrides http://localhost:8000/
+dotnet run --project admin/Timesheet.Admin/Timesheet.Admin.csproj   # API address: env TIMESHEET_API_URL, else server dialog (asks at first start), else appsettings.json; no default
 ```
 
 There are no backend or admin automated tests, and the frontend has Vitest configured (`src/test/setup.ts`) but few or no test files. End-to-end verification is done manually or via Playwright MCP against the running app. See `TESTING.md` for the test-case format used.

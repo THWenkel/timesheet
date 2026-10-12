@@ -32,13 +32,45 @@ dotnet build admin/Timesheet.Admin/Timesheet.Admin.csproj
 dotnet run --project admin/Timesheet.Admin/Timesheet.Admin.csproj
 ```
 
-The backend must be running. By default the client uses `http://localhost:8000/`.
-Override that address when necessary:
+The backend does **not** have to run on the PC of the administrator. The tool only talks to
+the API over HTTP(S), so it works on any PC that can reach the server. Where the API is
+reachable is configured, there is no built-in default address (see below).
 
-```powershell
-$env:TIMESHEET_API_URL = "http://server:8000/"
-dotnet run --project admin/Timesheet.Admin/Timesheet.Admin.csproj
+## Configuring the API address
+
+The tool looks for the address of the API in this order (first hit wins):
+
+1. Environment variable `TIMESHEET_API_URL`.
+2. The address chosen in the **server dialog** (saved per Windows user in
+   `%APPDATA%\Timesheet.Admin\settings.json`).
+3. `ApiUrl` in `appsettings.json` next to `Timesheet.Admin.exe`.
+
+If nothing is configured, or the server cannot be reached or does not answer like the
+Timesheet API, the **server dialog** opens by itself: enter the address, press
+**Verbindung testen**, then **Speichern und verbinden**. The address is remembered. Later,
+the login window shows the current server and has a button **Server ändern …**.
+
+Valid addresses start with `http://` or `https://` and may contain a path, for example:
+
+| Operation | Address |
+| --- | --- |
+| Production behind the reverse proxy | `https://cloudserver2.hopto.org/timesheet/` |
+| Local development | `http://localhost:8000/` |
+
+A missing trailing slash is added. The path `/timesheet/` is part of the address when the API
+is reached through the proxy or the IIS.
+
+`appsettings.json` is meant for rolling out one address to many PCs (edit it once in the
+`publish` folder before copying it):
+
+```json
+{
+  "ApiUrl": "https://cloudserver2.hopto.org/timesheet/"
+}
 ```
+
+Over `http://` (except `localhost`) the login only works if the server has
+`COOKIE_SECURE=false`; use `https://` in production.
 
 Employees are normally **deactivated**, so existing timesheet entries and audit
 references remain intact. The **Löschen** button removes an employee for good, but
@@ -51,10 +83,10 @@ dotnet publish admin/Timesheet.Admin/Timesheet.Admin.csproj -c Release -r win-x6
 ```
 
 Copy the `publish` folder to the admin PCs (the .NET 10 Desktop Runtime must be installed there)
-and start `Timesheet.Admin.exe`. The API address comes from the environment variable
-`TIMESHEET_API_URL`, for production `https://cloudserver2.hopto.org/timesheet/` (set it once per
-PC with `setx TIMESHEET_API_URL "https://cloudserver2.hopto.org/timesheet/"`, then restart the
-tool). Keep the trailing slash, otherwise the `/timesheet` path is lost.
+and start `Timesheet.Admin.exe`. Before copying, enter the production address in
+`publish\appsettings.json` (`"ApiUrl": "https://cloudserver2.hopto.org/timesheet/"`), then the
+tool works without any setup on each PC. Without an entry the tool asks for the address at the
+first start.
 
 ## Customer management
 

@@ -6,6 +6,9 @@ namespace Timesheet.Admin.Services;
 public sealed class AppSettings
 {
     public string? BackupFolder { get; set; }
+
+    /// <summary>Address of the API backend, chosen in the server settings dialog.</summary>
+    public string? ApiUrl { get; set; }
 }
 
 public interface ISettingsService
@@ -14,7 +17,7 @@ public interface ISettingsService
     void Save(AppSettings settings);
 }
 
-/// <summary>Remembers user choices (e.g. the backup folder) in %APPDATA%\Timesheet.Admin.</summary>
+/// <summary>Remembers user choices (API address, backup folder) in %APPDATA%\Timesheet.Admin.</summary>
 public sealed class SettingsService : ISettingsService
 {
     private static readonly string FilePath = Path.Combine(

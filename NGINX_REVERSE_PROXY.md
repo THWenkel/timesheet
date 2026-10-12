@@ -202,7 +202,7 @@ client_max_body_size 25m;
    ```
    `COOKIE_SECURE=true` passt, weil der Browser ausschließlich HTTPS sieht. Backend danach neu starten (Dienst `TimesheetBackend`). **Folge:** Die Anmeldung über `http://intranet.wenkel.local/timesheet/` funktioniert damit nicht mehr, weil der Browser ein `Secure`-Cookie nicht über HTTP speichert. Alle Nutzer gehen über die öffentliche Adresse.
 3. **Im IIS keine http→https-Umleitung einrichten.** Der Proxy spricht HTTP mit dem IIS, eine solche Regel würde eine Endlosschleife erzeugen. (Die Anleitung `INSTALL_IIS_INTRANET.md` Schritt 8 gilt für diesen Betrieb nicht.)
-4. **Windows-Admin-Tool:** Umgebungsvariable `TIMESHEET_API_URL=https://cloudserver2.hopto.org/timesheet/` (mit Schrägstrich am Ende, sonst geht der Pfad `/timesheet` verloren). Bei einem Zertifikat einer öffentlichen CA braucht der PC nichts weiter. Die Administrations-Pfade funktionieren nur von Adressen aus der Freigabeliste (siehe Fallstricke).
+4. **Windows-Admin-Tool:** Adresse `https://cloudserver2.hopto.org/timesheet/` (mit Schrägstrich am Ende, sonst geht der Pfad `/timesheet` verloren). Einstellbar im Server-Dialog des Tools (erscheint beim ersten Start und über „Server ändern …“ im Anmeldefenster), über `appsettings.json` neben der `Timesheet.Admin.exe` oder über die Umgebungsvariable `TIMESHEET_API_URL`. Bei einem Zertifikat einer öffentlichen CA braucht der PC nichts weiter. Die Administrations-Pfade funktionieren nur von Adressen aus der Freigabeliste (siehe Fallstricke).
 
 ## Prüfliste
 

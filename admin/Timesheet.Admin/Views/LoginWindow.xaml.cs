@@ -14,11 +14,21 @@ public partial class LoginWindow : Window
     private readonly IAuthApiClient authApiClient;
     private string? usedPassword;
 
-    public LoginWindow(IAuthApiClient authApiClient)
+    public LoginWindow(IAuthApiClient authApiClient, Uri serverUri)
     {
         InitializeComponent();
         this.authApiClient = authApiClient;
+        ServerText.Text = $"Server: {serverUri}";
         Loaded += (_, _) => UsernameBox.Focus();
+    }
+
+    /// <summary>True if the window was closed to pick another server address.</summary>
+    public bool ChangeServerRequested { get; private set; }
+
+    private void Server_Click(object sender, RoutedEventArgs e)
+    {
+        ChangeServerRequested = true;
+        DialogResult = false;
     }
 
     private async void Submit_Click(object sender, RoutedEventArgs e)

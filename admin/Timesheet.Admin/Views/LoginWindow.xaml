@@ -11,6 +11,7 @@
         <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="24" Text="Anmeldung" />
         <TextBlock x:Name="Subtitle" Margin="0,6,0,18" Foreground="#5B6864"
                    Text="Nur Administratoren dürfen das Admin-Tool nutzen." TextWrapping="Wrap" />
+        <TextBlock x:Name="ServerText" Margin="0,-10,0,18" Foreground="#5B6864" TextWrapping="Wrap" />
 
         <StackPanel x:Name="LoginPanel">
             <TextBlock Margin="0,0,0,6" Text="Benutzername" />
@@ -28,11 +29,18 @@
 
         <TextBlock x:Name="ErrorText" Margin="0,12,0,0" Foreground="#A12828" TextWrapping="Wrap" />
 
-        <StackPanel Margin="0,18,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-            <Button IsCancel="True" Content="Abbrechen" />
-            <Button x:Name="SubmitButton" IsDefault="True" Margin="0"
-                    Background="{StaticResource AccentBrush}" Foreground="White"
-                    Click="Submit_Click" Content="Anmelden" />
-        </StackPanel>
+        <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="ServerButton" Margin="0" MinWidth="0" Click="Server_Click" Content="Server ändern …" />
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button IsCancel="True" Content="Abbrechen" />
+                <Button x:Name="SubmitButton" IsDefault="True" Margin="0"
+                        Background="{StaticResource AccentBrush}" Foreground="White"
+                        Click="Submit_Click" Content="Anmelden" />
+            </StackPanel>
+        </Grid>
     </StackPanel>
 </Window>

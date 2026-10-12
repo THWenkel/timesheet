@@ -274,7 +274,9 @@ public partial class BackupViewModel(
         if (folder is not null)
         {
             BackupFolder = folder;
-            settingsService.Save(new AppSettings { BackupFolder = folder });
+            var settings = settingsService.Load();
+            settings.BackupFolder = folder;
+            settingsService.Save(settings);
         }
 
         return folder;

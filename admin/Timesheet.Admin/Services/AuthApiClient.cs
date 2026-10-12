@@ -29,6 +29,8 @@ public sealed record AuthResult(CurrentUser? User, string? Error);
 
 public interface IAuthApiClient
 {
+    /// <summary>Null if the address points to a reachable Timesheet API, otherwise a message.</summary>
+    Task<string?> CheckConnectionAsync(CancellationToken cancellationToken = default);
     Task<bool> IsAuthEnabledAsync(CancellationToken cancellationToken = default);
     Task<AuthResult> LoginAsync(string username, string password, CancellationToken cancellationToken = default);
     Task<AuthResult> ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken = default);
@@ -36,6 +38,40 @@ public interface IAuthApiClient
 
 public sealed class AuthApiClient(HttpClient httpClient) : IAuthApiClient
 {
+    public async Task<string?> CheckConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        try
+        {
+            using var response = await httpClient.GetAsync("api/auth/config", timeout.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                return $"Der Server antwortet mit Status {(int)response.StatusCode}. "
+                    + "Ist die Adresse vollständig, z. B. mit dem Pfad /timesheet/?";
+            }
+
+            using var document = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync(timeout.Token));
+            return document.RootElement.TryGetProperty("auth_enabled", out _)
+                ? null
+                : "Die Adresse antwortet, ist aber nicht das Timesheet-API.";
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return "Zeitüberschreitung: Der Server antwortet nicht.";
+        }
+        catch (JsonException)
+        {
+            return "Die Adresse antwortet, ist aber nicht das Timesheet-API (keine gültige Antwort).";
+        }
+        catch (HttpRequestException exception)
+        {
+            return "Der Server ist nicht erreichbar: "
+                + (exception.InnerException?.Message ?? exception.Message);
+        }
+    }
+
     // Unreachable API counts as "enabled": the login dialog then shows the connection error.
     public async Task<bool> IsAuthEnabledAsync(CancellationToken cancellationToken = default)
     {
