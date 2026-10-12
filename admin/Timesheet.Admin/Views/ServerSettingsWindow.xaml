@@ -1,0 +1,37 @@
+<Window x:Class="Timesheet.Admin.Views.ServerSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Timesheet Admin – Server"
+        Width="520"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource CanvasBrush}">
+    <StackPanel Margin="26">
+        <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="24" Text="Server" />
+        <TextBlock Margin="0,6,0,18" Foreground="#5B6864" TextWrapping="Wrap"
+                   Text="Unter dieser Adresse erreicht das Tool das Timesheet-API. Das Backend muss nicht auf diesem Rechner laufen." />
+
+        <TextBlock Margin="0,0,0,6" Text="Adresse des API-Servers" />
+        <TextBox x:Name="UrlBox" Padding="8" />
+        <TextBlock Margin="0,6,0,0" Foreground="#5B6864" TextWrapping="Wrap"
+                   Text="Beispiele: https://cloudserver2.hopto.org/timesheet/ oder http://localhost:8000/" />
+
+        <TextBlock x:Name="HintText" Margin="0,12,0,0" Foreground="#5B6864" TextWrapping="Wrap" />
+        <TextBlock x:Name="StatusText" Margin="0,12,0,0" TextWrapping="Wrap" />
+
+        <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="TestButton" Margin="0" Click="Test_Click" Content="Verbindung testen" />
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button IsCancel="True" Content="Abbrechen" />
+                <Button x:Name="SaveButton" IsDefault="True" Margin="0"
+                        Background="{StaticResource AccentBrush}" Foreground="White"
+                        Click="Save_Click" Content="Speichern und verbinden" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</Window>
