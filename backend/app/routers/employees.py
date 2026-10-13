@@ -23,11 +23,12 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.employee import Employee
-from app.models.project import ProjectAllocation
+from app.models.project import Customer, Project, ProjectAllocation
 from app.models.timesheet import TimesheetEntry
 from app.schemas.employee import (
     EmployeeCreate,
     EmployeeListItem,
+    EmployeeProject,
     EmployeeRead,
     EmployeeUpdate,
 )
@@ -119,6 +120,45 @@ def get_employee(
             detail=f"Employee with id={employee_id} not found",
         )
     return employee
+
+
+@router.get(
+    "/{employee_id}/projects",
+    response_model=list[EmployeeProject],
+    summary="List the projects an employee may book time on",
+)
+def list_employee_projects(
+    employee_id: int,
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+    auth: AuthContext | None = Depends(require_user),
+) -> list[EmployeeProject]:
+    """
+    Projects allocated to the employee, with customer name and order number.
+
+    The time entry form uses the default (active projects only); the export also
+    needs paused and completed projects (``active_only=false``).
+    """
+    ensure_employee_access(auth, employee_id)
+    stmt = (
+        select(Project, Customer.name)
+        .join(ProjectAllocation, ProjectAllocation.project_id == Project.id)
+        .join(Customer, Customer.id == Project.customer_id)
+        .where(ProjectAllocation.employee_id == employee_id)
+        .order_by(Customer.name, Project.name)
+    )
+    if active_only:
+        stmt = stmt.where(Project.status == "active")
+    return [
+        EmployeeProject(
+            id=project.id,
+            name=project.name,
+            customer_name=customer_name,
+            purchase_number=project.purchase_number,
+            status=project.status,
+        )
+        for project, customer_name in db.execute(stmt).all()
+    ]
 
 
 @router.post(

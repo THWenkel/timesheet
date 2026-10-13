@@ -17,9 +17,51 @@
 
 import csv
 import io
+from dataclasses import dataclass
 from datetime import date
+from typing import Any
+from xml.sax.saxutils import escape
 
+from app.models.project import Customer, Project
+from app.schemas.budget import BudgetOverview
 from app.schemas.timesheet import TimesheetEntryRead
+from app.services.budget_service import minutes_to_unit
+
+_UNIT_LABELS = {"hours": "Std.", "person_days": "PT"}
+
+
+@dataclass(frozen=True)
+class ExportContext:
+    """Customer, project and budget consumption printed on the PDF / Excel export."""
+
+    customer: Customer
+    project: Project
+    budget: BudgetOverview
+
+
+def _unit_label(unit: str) -> str:
+    return _UNIT_LABELS.get(unit, unit)
+
+
+def _amount(minutes: int, unit: str) -> float:
+    """Minutes in the budget unit, rounded to two decimals."""
+    return round(minutes_to_unit(minutes, unit), 2)
+
+
+def _amount_text(minutes: int | None, unit: str) -> str:
+    """German formatted amount with unit, e.g. '12,50 Std.'; '-' for no value."""
+    if minutes is None:
+        return "-"
+    return f"{_amount(minutes, unit):,.2f}".replace(",", "X").replace(".", ",").replace(
+        "X", "."
+    ) + f" {_unit_label(unit)}"
+
+
+def _customer_lines(customer: Customer) -> list[str]:
+    """Postal address lines of the customer, empty parts left out."""
+    town = f"{customer.postal_code} {customer.city}".strip()
+    parts = [customer.name, customer.street_1, customer.street_2, town, customer.country]
+    return [p for p in parts if p]
 
 
 def _minutes_to_display(minutes: int) -> str:
@@ -100,9 +142,13 @@ def generate_excel(
     employee_name: str,
     from_date: date,
     to_date: date,
+    context: ExportContext | None = None,
 ) -> bytes:
     """
     Generate an Excel (.xlsx) workbook from the given timesheet entries.
+
+    With ``context`` the sheet also shows customer, project and order number, and a
+    second sheet "Budget" lists the consumption per month and the remaining budget.
 
     Uses openpyxl to create a styled spreadsheet with:
       - A title and metadata block at the top
@@ -140,9 +186,13 @@ def generate_excel(
     ws["A1"].font = Font(bold=True, size=14)  # type: ignore[union-attr]
     ws.append(["Employee:", employee_name])  # type: ignore[union-attr]
     ws.append(["Period:", f"{from_date} - {to_date}"])  # type: ignore[union-attr]
+    if context is not None:
+        ws.append(["Kunde:", ", ".join(_customer_lines(context.customer))])  # type: ignore[union-attr]
+        ws.append(["Projekt:", context.project.name])  # type: ignore[union-attr]
+        ws.append(["Auftragsnummer:", context.project.purchase_number])  # type: ignore[union-attr]
     ws.append([])  # type: ignore[union-attr]  blank row
 
-    # --- Column headers (row 5) ---
+    # --- Column headers ---
     header_row = ["Date", "Duration (hh:mm)", "Description"]
     ws.append(header_row)  # type: ignore[union-attr]
     header_row_idx = ws.max_row  # type: ignore[union-attr]
@@ -181,10 +231,89 @@ def generate_excel(
     for col_idx, width in enumerate(column_widths, start=1):
         ws.column_dimensions[get_column_letter(col_idx)].width = width  # type: ignore[union-attr]
 
+    # --- Budget sheet ---
+    if context is not None:
+        _add_budget_sheet(wb, context, header_fill, bold_white, total_fill, bold)
+
     # --- Serialize to bytes ---
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
+
+
+def _add_budget_sheet(
+    wb: object,
+    context: ExportContext,
+    header_fill: object,
+    header_font: object,
+    total_fill: object,
+    bold: object,
+) -> None:
+    """
+    Add the sheet "Budget": budget, consumption per month, cumulative and remaining.
+
+    Amounts are in the budget unit of the project. Cumulative and remaining are
+    Excel formulas, so the sheet stays correct if a value is corrected by hand.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+
+    assert isinstance(wb, Workbook)
+    budget = context.budget
+    unit = budget.budget_unit
+    label = _unit_label(unit)
+
+    ws = wb.create_sheet("Budget")
+    ws.append(["Budget-Verbrauch"])
+    ws["A1"].font = Font(bold=True, size=14)
+    ws.append(["Projekt:", context.project.name])
+    ws.append(["Auftragsnummer:", context.project.purchase_number])
+    ws.append(["Einheit:", label])
+    ws.append(["Budget:", None if budget.budget_minutes is None else budget.budget_amount])
+    budget_cell = f"B{ws.max_row}"
+    ws.append([])
+
+    headers = ["Monat", f"Projekt gesamt ({label})", f"davon Mitarbeiter ({label})",
+               f"Kumuliert ({label})", f"Rest ({label})"]
+    ws.append(headers)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=ws.max_row, column=col_idx)
+        cell.font = header_font  # type: ignore[assignment]
+        cell.fill = header_fill  # type: ignore[assignment]
+        cell.alignment = Alignment(horizontal="center", wrap_text=True)
+
+    first_data = ws.max_row + 1
+    for month in budget.months:
+        row = ws.max_row + 1
+        ws.append([
+            month.month.strftime("%Y-%m"),
+            minutes_to_unit(month.project_minutes, unit),
+            minutes_to_unit(month.employee_minutes, unit),
+            f"=SUM(B${first_data}:B{row})",
+            f"={budget_cell}-D{row}" if budget.budget_minutes is not None else None,
+        ])
+    last_data = ws.max_row
+
+    ws.append([])
+    ws.append([
+        "Summe",
+        f"=SUM(B{first_data}:B{last_data})",
+        f"=SUM(C{first_data}:C{last_data})",
+        f"=D{last_data}",
+        f"=E{last_data}" if budget.budget_minutes is not None else None,
+    ])
+    for col_idx in range(1, 6):
+        cell = ws.cell(row=ws.max_row, column=col_idx)
+        cell.font = bold  # type: ignore[assignment]
+        cell.fill = total_fill  # type: ignore[assignment]
+    if budget.percent_used is not None:
+        ws.append(["Verbraucht:", f"{budget.percent_used:.1f} %".replace(".", ",")])
+
+    for col_idx, width in enumerate([16, 22, 24, 20, 18], start=1):
+        ws.column_dimensions[chr(64 + col_idx)].width = width
+    for row in ws.iter_rows(min_row=first_data, max_row=ws.max_row, min_col=2, max_col=5):
+        for cell in row:
+            cell.number_format = "0.00"
 
 
 # =============================================================================
@@ -311,14 +440,97 @@ def _add_sig_widget(
     return out.getvalue()
 
 
+def _budget_page_elements(context: ExportContext, page_width: float) -> list[object]:
+    """Flowables of the budget page: summary lines and the consumption table per month."""
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+
+    styles = getSampleStyleSheet()
+    normal, title, heading = styles["Normal"], styles["Title"], styles["Heading2"]
+    paragraph, spacer, table, table_style = Paragraph, Spacer, Table, TableStyle
+    budget = context.budget
+    unit = budget.budget_unit
+    out: list[object] = [
+        paragraph("Budget-Verbrauch", title),
+        paragraph(f"<b>Projekt:</b> {escape(context.project.name)}", normal),
+        paragraph(f"<b>Auftragsnummer:</b> {escape(context.project.purchase_number) or '-'}", normal),
+        spacer(1, 0.4 * cm),
+        paragraph("Zusammenfassung", heading),
+    ]
+    rows: list[list[str]] = [
+        ["Budget", _amount_text(budget.budget_minutes, unit)],
+        ["Verbraucht (gesamtes Projekt)", _amount_text(budget.total_minutes, unit)],
+        ["davon Mitarbeiter", _amount_text(budget.employee_minutes, unit)],
+        ["Restbudget", _amount_text(budget.remaining_minutes, unit)],
+    ]
+    if budget.percent_used is not None:
+        rows.append(["Ausschöpfung", f"{budget.percent_used:.1f} %".replace(".", ",")])
+    summary = table(rows, colWidths=[7 * cm, 5 * cm], hAlign="LEFT")
+    summary_cmds: list[Any] = [
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.HexColor("#CCCCCC")),
+    ]
+    if budget.remaining_minutes is not None and budget.remaining_minutes < 0:
+        summary_cmds.append(("TEXTCOLOR", (0, 3), (-1, 3), colors.HexColor("#B00020")))
+        summary_cmds.append(("FONTNAME", (0, 3), (-1, 3), "Helvetica-Bold"))
+    summary.setStyle(table_style(summary_cmds))
+    out.append(summary)
+
+    out.append(spacer(1, 0.6 * cm))
+    out.append(paragraph("Verbrauch je Monat", heading))
+    label = _unit_label(unit)
+    data: list[list[str]] = [
+        ["Monat", f"Projekt ({label})", f"Mitarbeiter ({label})", f"Kumuliert ({label})",
+         f"Rest ({label})"],
+    ]
+    for month in budget.months:
+        data.append([
+            month.month.strftime("%Y-%m"),
+            _amount_text(month.project_minutes, unit),
+            _amount_text(month.employee_minutes, unit),
+            _amount_text(month.cumulative_minutes, unit),
+            _amount_text(month.remaining_minutes, unit),
+        ])
+    col = page_width / 5
+    months_table = table(data, colWidths=[col] * 5, repeatRows=1)
+    hex_color = colors.HexColor
+    cmds: list[Any] = [
+        ("BACKGROUND", (0, 0), (-1, 0), hex_color("#1B4F8A")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("GRID", (0, 0), (-1, -1), 0.5, hex_color("#CCCCCC")),
+        *[
+            ("BACKGROUND", (0, i), (-1, i), hex_color("#DCE6F1"))
+            for i in range(2, len(data), 2)
+        ],
+    ]
+    # Overrun months in red
+    for i, month in enumerate(budget.months, start=1):
+        if month.remaining_minutes is not None and month.remaining_minutes < 0:
+            cmds.append(("TEXTCOLOR", (4, i), (4, i), hex_color("#B00020")))
+    months_table.setStyle(table_style(cmds))
+    out.append(months_table)
+    return out
+
+
 def generate_pdf(
     entries: list[TimesheetEntryRead],
     employee_name: str,
     from_date: date,
     to_date: date,
+    context: ExportContext | None = None,
 ) -> bytes:
     """
     Generate a PDF report from the given timesheet entries.
+
+    With ``context`` page 1 shows customer, project and order number, and a final
+    page lists the budget consumption per month and the remaining budget. The
+    signature field stays on the page with the entries.
 
     Uses reportlab to produce an A4 PDF with:
       - Company/app title and report metadata at the top
@@ -340,7 +552,15 @@ def generate_pdf(
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Flowable,
+        PageBreak,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     buffer = io.BytesIO()
 
@@ -372,6 +592,25 @@ def generate_pdf(
     # --- Metadata ---
     elements.append(Paragraph(f"<b>Employee:</b> {employee_name}", styles["Normal"]))
     elements.append(Paragraph(f"<b>Period:</b> {from_date} - {to_date}", styles["Normal"]))
+    if context is not None:
+        elements.append(Spacer(1, 0.3 * cm))
+        customer_html = "<br/>".join(escape(line) for line in _customer_lines(context.customer))
+        elements.append(Paragraph(f"<b>Kunde:</b><br/>{customer_html}", styles["Normal"]))
+        elements.append(Spacer(1, 0.2 * cm))
+        elements.append(Paragraph(f"<b>Projekt:</b> {escape(context.project.name)}", styles["Normal"]))
+        elements.append(
+            Paragraph(
+                f"<b>Auftragsnummer:</b> {escape(context.project.purchase_number) or '-'}",
+                styles["Normal"],
+            )
+        )
+        if context.project.consuming_plant:
+            elements.append(
+                Paragraph(
+                    f"<b>Verbrauchendes Werk:</b> {escape(context.project.consuming_plant)}",
+                    styles["Normal"],
+                )
+            )
     elements.append(Spacer(1, 0.5 * cm))
 
     # --- Table ---
@@ -469,6 +708,11 @@ def generate_pdf(
         ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
     ]))
     elements.append(sig_table)
+
+    # --- Budget consumption (own page, after the signature block) ---
+    if context is not None:
+        elements.append(PageBreak())
+        elements.extend(_budget_page_elements(context, page_width))
 
     # --- Build ---
     doc.build(elements)  # type: ignore[arg-type]

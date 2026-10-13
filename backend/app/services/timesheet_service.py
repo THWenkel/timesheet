@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.employee import Employee
+from app.models.project import Project, ProjectAllocation
 from app.models.timesheet import TimesheetEntry
 from app.schemas.timesheet import (
     DateWithEntries,
@@ -69,6 +70,34 @@ def _get_day_total(db: Session, employee_id: int, entry_date: date, exclude_id: 
     return result
 
 
+def _validate_project(db: Session, employee_id: int, project_id: int) -> None:
+    """
+    Ensure time can be booked on the project by this employee.
+
+    The project must exist, be active and be allocated to the employee
+    (``project_allocations``). An employee without allocations can book nothing.
+
+    Raises:
+        ValueError: If any of the conditions is not met.
+    """
+    project = db.get(Project, project_id)
+    if project is None:
+        msg = f"Project with id={project_id} not found"
+        raise ValueError(msg)
+    if project.status != "active":
+        msg = f"Project '{project.name}' is not active"
+        raise ValueError(msg)
+    allocated = db.execute(
+        select(ProjectAllocation.id).where(
+            ProjectAllocation.project_id == project_id,
+            ProjectAllocation.employee_id == employee_id,
+        )
+    ).first()
+    if allocated is None:
+        msg = f"Employee id={employee_id} is not assigned to project '{project.name}'"
+        raise ValueError(msg)
+
+
 def get_entries_for_date(
     db: Session,
     employee_id: int,
@@ -102,6 +131,7 @@ def get_entries_for_range(
     employee_id: int,
     from_date: date,
     to_date: date,
+    project_id: int | None = None,
 ) -> list[TimesheetEntryRead]:
     """
     Fetch all timesheet entries for an employee within a date range (inclusive).
@@ -113,6 +143,7 @@ def get_entries_for_range(
         employee_id: Employee to fetch entries for.
         from_date:   Start of the date range (inclusive).
         to_date:     End of the date range (inclusive).
+        project_id:  If given, only entries booked on this project.
 
     Returns:
         A list of TimesheetEntryRead schemas ordered by date then creation time.
@@ -126,6 +157,8 @@ def get_entries_for_range(
         )
         .order_by(TimesheetEntry.entry_date, TimesheetEntry.created_at)
     )
+    if project_id is not None:
+        stmt = stmt.where(TimesheetEntry.project_id == project_id)
     rows = db.execute(stmt).scalars().all()
     return [TimesheetEntryRead.model_validate(row) for row in rows]
 
@@ -217,6 +250,9 @@ def create_entry(
         msg = f"Employee with id={payload.employee_id} is not active"
         raise ValueError(msg)
 
+    # --- Validate project (exists, active, allocated to the employee) ---
+    _validate_project(db, payload.employee_id, payload.project_id)
+
     # --- Validate 24h daily limit ---
     existing_minutes = _get_day_total(db, payload.employee_id, payload.entry_date)
     if existing_minutes + payload.minutes > 1440:
@@ -232,6 +268,7 @@ def create_entry(
     # --- Create the database record ---
     entry = TimesheetEntry(
         employee_id=payload.employee_id,
+        project_id=payload.project_id,
         entry_date=payload.entry_date,
         minutes=payload.minutes,
         description=payload.description,
@@ -272,6 +309,15 @@ def update_entry(
     entry = db.get(TimesheetEntry, entry_id)
     if entry is None:
         msg = f"TimesheetEntry with id={entry_id} not found"
+        raise ValueError(msg)
+
+    # --- Project: legacy entries (no project) must get one on their next edit ---
+    if payload.project_id is not None:
+        if payload.project_id != entry.project_id:
+            _validate_project(db, entry.employee_id, payload.project_id)
+            entry.project_id = payload.project_id
+    elif entry.project_id is None:
+        msg = "This entry has no project yet. Please choose a project."
         raise ValueError(msg)
 
     # --- Apply partial updates ---

@@ -390,6 +390,13 @@ Single endpoint `GET /api/export` with query parameters:
 - `employee_id`: integer
 - `from_date`: ISO date string
 - `to_date`: ISO date string
+- `project_id`: integer, **required for `excel` and `pdf`**, ignored for `csv`. The employee must be assigned to the project (403 otherwise).
+
+Excel and PDF show customer, project and order number (`projects.purchase_number`) and contain the budget consumption per month for the whole project (all employees) with the remaining budget. In the PDF the signature field stays on page 1 and the budget overview is the last page.
+
+Time entries carry a `project_id` (migration `011_timesheet_project.sql`, additive; legacy entries stay `NULL`). `POST /api/timesheets` requires an active project that is allocated to the employee. `GET /api/employees/{id}/projects` lists the allocated projects for the project pickers.
+
+**Before applying a migration**: run the admin client's "Datensicherung" (database backup and file export) and, in addition, a full SQL Server backup of `WiTERP`.
 
 Returns a `StreamingResponse` with appropriate `Content-Disposition` header for browser download.
 

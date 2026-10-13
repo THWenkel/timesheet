@@ -72,9 +72,10 @@ Auth (`app/core/security.py`, `routers/auth.py`): JWT in an HttpOnly cookie plus
 - Time is stored as **integer minutes**: multiples of 15, from 15 to 1440. The frontend converts to and from `hh:mm` in `src/utils/timeUtils.ts`.
 - Every table has audit columns (`created_at`, `updated_at`, `created_by`, `updated_by`), and every timesheet write carries an `employee_id`.
 - Deleting an employee or customer is a **deactivation** (`is_active`), so existing entries and project links stay intact. The only hard delete is `DELETE /api/employees/{id}` for an employee with no timesheet entries (the database would cascade-delete their entries otherwise); the API refuses it with 409 otherwise.
-- Projects belong to a customer and are assigned to employees through `project_allocations`. Budgets are in hours *or* person-days, and there is deliberately no conversion between them.
+- Projects belong to a customer and are assigned to employees through `project_allocations`. Budgets are in hours *or* person-days; person-days are compared with booked time via `HOURS_PER_PERSON_DAY` (default 8, `backend/.env`).
+- Every new timesheet entry carries a `project_id` (migration 011; the column stays nullable only for legacy entries). The API requires an active project allocated to the employee, so an employee without a project cannot book time.
 - Customer country must be a code that exists in the `CountryCode2` lookup table.
-- Export: `GET /api/export?format=csv|excel|pdf&employee_id=&from_date=&to_date=` streams the file from `services/export_service.py`.
+- Export: `GET /api/export?format=csv|excel|pdf&employee_id=&from_date=&to_date=&project_id=` streams the file from `services/export_service.py`. Excel and PDF require `project_id` and add customer, project, order number and a budget-consumption page/sheet (`services/budget_service.py`, whole project, all employees); CSV ignores it.
 
 ### Frontend
 

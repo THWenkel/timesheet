@@ -111,8 +111,10 @@ details, and assigned employees. Customers must be created in customer administr
 before they can be selected for a project.
 
 Selecting an employee in the main window loads that employee's assigned projects into
-the lower grid. Budgets are stored either as hours or person-days; no implicit conversion
-is performed until a standard number of hours per person-day has been agreed.
+the lower grid. Budgets are stored either as hours or person-days. The budget overview in the PDF/Excel
+export converts person-days with `HOURS_PER_PERSON_DAY` (default 8, set in `backend/.env`);
+the stored budget values themselves are never converted. Employees can only book time on
+active projects they are assigned to.
 
 ## Datensicherung und Wiederherstellung
 

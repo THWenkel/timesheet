@@ -283,6 +283,30 @@ tfoot td {
     border-color 0.15s ease-in-out;
 }
 
+.home-page__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.25rem;
+  background-color: transparent;
+  color: #b91c1c;
+  border: 1px solid #b91c1c;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-left: auto;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.home-page__delete-btn:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.home-page__delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .home-page__cancel-btn:hover:not(:disabled) {
   background-color: #f3f4f6;
   border-color: #9ca3af;
@@ -429,6 +453,27 @@ tfoot td {
 .react-calendar__tile:disabled {
   color: #d1d5db;
   cursor: not-allowed;
+}
+
+/* ── ProjectSelect ────────────────────────────────────────────────────────── */
+
+.project-select {
+  margin-bottom: 0.75rem;
+}
+
+.project-select__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.project-select__input {
+  width: 100%;
+}
+
+.project-select__hint {
+  color: #6b7280;
+  margin-bottom: 0.75rem;
 }
 
 /* ── TimePickerInput ──────────────────────────────────────────────────────── */

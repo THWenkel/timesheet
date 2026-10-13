@@ -24,6 +24,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.employee import Employee
+    from app.models.project import Project
 
 
 class TimesheetEntry(Base):
@@ -64,6 +65,17 @@ class TimesheetEntry(Base):
         nullable=False,
         index=True,
         comment="References employees.id — the owner of this timesheet entry",
+    )
+
+    # -------------------------------------------------------------------------
+    # Project the time was booked on (NULL only for entries older than migration 011)
+    # -------------------------------------------------------------------------
+    project_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("projects.id"),
+        nullable=True,
+        index=True,
+        comment="References projects.id. NULL only for legacy entries; the API requires it.",
     )
 
     # -------------------------------------------------------------------------
@@ -133,10 +145,20 @@ class TimesheetEntry(Base):
         back_populates="timesheet_entries",
         lazy="select",
     )
+    project: Mapped[Project | None] = relationship(  # type: ignore[name-defined]
+        "Project",
+        foreign_keys="[TimesheetEntry.project_id]",
+        lazy="joined",
+    )
 
     # -------------------------------------------------------------------------
     # Computed helpers
     # -------------------------------------------------------------------------
+    @property
+    def project_name(self) -> str | None:
+        """Name of the booked project, None for legacy entries."""
+        return self.project.name if self.project is not None else None
+
     @property
     def hours_display(self) -> str:
         """

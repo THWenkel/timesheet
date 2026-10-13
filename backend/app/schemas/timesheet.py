@@ -85,6 +85,11 @@ class TimesheetEntryCreate(TimesheetEntryBase):
         ge=1,
         description="ID of the employee submitting this entry",
     )
+    project_id: int = Field(
+        ...,
+        ge=1,
+        description="ID of the project the time is booked on (must be allocated to the employee)",
+    )
 
 
 class TimesheetEntryUpdate(BaseModel):
@@ -95,6 +100,13 @@ class TimesheetEntryUpdate(BaseModel):
     Validation rules (multiples of 15, etc.) still apply.
     """
 
+    project_id: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Project to book on. Required for legacy entries that have no project yet."
+        ),
+    )
     minutes: int | None = Field(
         default=None,
         ge=15,
@@ -138,6 +150,10 @@ class TimesheetEntryRead(TimesheetEntryBase):
 
     id: int = Field(description="Auto-incremented primary key")
     employee_id: int = Field(description="ID of the employee who owns this entry")
+    project_id: int | None = Field(
+        default=None, description="Project the time was booked on (None for legacy entries)"
+    )
+    project_name: str | None = Field(default=None, description="Name of the booked project")
     hours_display: str = Field(
         description="Human-readable duration in hh:mm format (derived from minutes)",
         examples=["01:30", "08:00"],

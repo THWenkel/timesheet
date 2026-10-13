@@ -3,6 +3,9 @@
 
    Export panel allowing the user to download timesheet data as CSV, Excel, or PDF.
 
+   Excel and PDF are created per project (customer, order number and budget
+   consumption are printed); CSV exports all entries and needs no project.
+
    The export triggers a browser download via a GET request to /api/export/
    with the appropriate query parameters. The browser's built-in download
    mechanism handles the file save dialog.
@@ -10,6 +13,8 @@
 
 import { useState } from "react";
 import { apiBaseUrl } from "@/api/client";
+import { ProjectSelect } from "@/components/ProjectSelect";
+import { useEmployeeProjects } from "@/hooks/useEmployeeProjects";
 import { toISODateString } from "@/utils/timeUtils";
 
 type ExportFormat = "csv" | "excel" | "pdf";
@@ -36,13 +41,25 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
   const [toDate, setToDate] = useState<string>(toISODateString(today));
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [chosenProjectId, setChosenProjectId] = useState<number | null>(null);
+
+  // Export also covers paused and completed projects
+  const { projects, isLoading: isProjectsLoading } = useEmployeeProjects(employeeId, false);
+  const needsProject = format !== "csv";
+  const onlyProject = projects.length === 1 ? projects[0] : undefined;
+  const projectId =
+    onlyProject !== undefined
+      ? onlyProject.id
+      : projects.some((p) => p.id === chosenProjectId)
+        ? chosenProjectId
+        : null;
 
   const handleFormatChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     setFormat(event.target.value as ExportFormat);
   };
 
   const handleDownload = async (): Promise<void> => {
-    if (employeeId === null) return;
+    if (employeeId === null || (needsProject && projectId === null)) return;
 
     setIsDownloading(true);
     setError(null);
@@ -57,6 +74,9 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
         from_date: fromDate,
         to_date: toDate,
       });
+      if (needsProject && projectId !== null) {
+        params.set("project_id", String(projectId));
+      }
 
       const response = await fetch(`${apiBaseUrl}/api/export/?${params.toString()}`, {
         credentials: "include",
@@ -99,6 +119,7 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
   };
 
   const isDisabled = employeeId === null || isDownloading;
+  const cannotDownload = isDisabled || (needsProject && projectId === null);
 
   return (
     <div className="export-panel">
@@ -120,10 +141,22 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
               checked={format === fmt}
               onChange={handleFormatChange}
             />
-            {fmt === "csv" ? "CSV" : fmt === "excel" ? "Excel (.xlsx)" : "PDF (A4 table)"}
+            {fmt === "csv" ? "CSV" : fmt === "excel" ? "Excel (.xlsx)" : "PDF (A4 report)"}
           </label>
         ))}
       </fieldset>
+
+      {/* Project (Excel / PDF only) */}
+      {needsProject && (
+        <ProjectSelect
+          id="export-project"
+          projects={projects}
+          value={projectId}
+          onChange={setChosenProjectId}
+          isLoading={isProjectsLoading}
+          disabled={isDisabled}
+        />
+      )}
 
       {/* Date range */}
       <div className="export-panel__date-range">
@@ -159,7 +192,7 @@ export function ExportPanel({ employeeId }: ExportPanelProps): React.JSX.Element
         type="button"
         className="export-panel__download-btn"
         onClick={() => void handleDownload()}
-        disabled={isDisabled}
+        disabled={cannotDownload}
         aria-busy={isDownloading}
       >
         {isDownloading ? "Generating…" : "Download"}

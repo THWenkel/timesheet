@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     csrf_cookie_name: str = Field(default="ts_csrf")
     # Origins allowed to call the API with credentials (comma separated in .env).
     cors_origins: list[str] = Field(default=["http://localhost:5173"])
+    # Hours that make up one person-day. Used to compare person-day budgets with booked time.
+    hours_per_person_day: float = Field(default=8.0, gt=0, le=24)
     # Password policy and brute-force protection
     password_min_length: int = Field(default=10)
     max_failed_logins: int = Field(default=5)

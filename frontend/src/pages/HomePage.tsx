@@ -7,7 +7,8 @@
    ┌─────────────────────────────────────────────────────────────┐
    │  Logged-in user (change password / log out)                 │
    ├──────────────────────┬──────────────────────────────────────┤
-   │  Calendar            │  Entry form (TimePicker + Description)│
+   │  Calendar            │  Entry form (Project + TimePicker +  │
+   │                      │  Description)                        │
    │  (react-calendar)    │  + Save button                       │
    │                      │  + Day Summary                       │
    │                      │  + Week Summary                      │
@@ -26,11 +27,14 @@ import { TimePickerInput } from "@/components/TimePickerInput";
 import { DescriptionInput } from "@/components/DescriptionInput";
 import { DaySummary } from "@/components/DaySummary";
 import { WeekSummary } from "@/components/WeekSummary";
+import { ProjectSelect } from "@/components/ProjectSelect";
 import { ExportPanel } from "@/components/ExportPanel";
+import { useEmployeeProjects } from "@/hooks/useEmployeeProjects";
 import {
   useCalendarDates,
   useCreateEntry,
   useDaySummary,
+  useDeleteEntry,
   useUpdateEntry,
   useWeekSummary,
 } from "@/hooks/useTimesheetEntries";
@@ -66,6 +70,8 @@ export function HomePage(): React.JSX.Element {
   // --- Entry form state ---
   const [minutes, setMinutes] = useState<number>(60); // Default: 1 hour
   const [description, setDescription] = useState<string>("");
+  // Chosen project; the effective value is derived below because it depends on the project list
+  const [chosenProjectId, setChosenProjectId] = useState<number | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   // --- Edit mode: null = create mode, non-null = editing an existing entry ---
@@ -92,8 +98,22 @@ export function HomePage(): React.JSX.Element {
     refetch: refetchWeek,
   } = useWeekSummary(selectedEmployee?.id ?? null, selectedDate);
 
+  const { projects, isLoading: isProjectsLoading } = useEmployeeProjects(
+    selectedEmployee?.id ?? null,
+  );
+  // One project: always preselected. Several: the choice must be one of them. None: no booking.
+  const onlyProject = projects.length === 1 ? projects[0] : undefined;
+  const projectId =
+    onlyProject !== undefined
+      ? onlyProject.id
+      : projects.some((p) => p.id === chosenProjectId)
+        ? chosenProjectId
+        : null;
+  const hasNoProject = !isProjectsLoading && projects.length === 0;
+
   const { createEntry, isSubmitting, error: saveError } = useCreateEntry();
   const { updateEntry, isSubmitting: isUpdating, error: updateError } = useUpdateEntry();
+  const { deleteEntry, isDeleting, error: deleteError } = useDeleteEntry();
 
   // --- Validation ---
   // In create mode: all logged minutes count toward the limit.
@@ -110,6 +130,7 @@ export function HomePage(): React.JSX.Element {
     setChosenEmployee(employee);
     setSelectedDate(null);
     setEditingEntry(null);
+    setChosenProjectId(null);
     setMinutes(60);
     setDescription("");
     setSaveSuccess(false);
@@ -137,6 +158,8 @@ export function HomePage(): React.JSX.Element {
 
   const handleEditEntry = (entry: TimesheetEntryRead): void => {
     setEditingEntry(entry);
+    // Legacy entries have no project: null forces a choice before saving
+    setChosenProjectId(entry.project_id ?? null);
     setMinutes(entry.minutes);
     setDescription(entry.description);
     setSaveSuccess(false);
@@ -152,11 +175,15 @@ export function HomePage(): React.JSX.Element {
 
   const handleSave = async (): Promise<void> => {
     if (selectedEmployee === null || selectedDate === null) return;
-    if (dailyLimitError !== null) return;
+    if (dailyLimitError !== null || projectId === null) return;
 
     if (editingEntry !== null) {
       // --- Update existing entry ---
-      const success = await updateEntry(editingEntry.id, { minutes, description });
+      const success = await updateEntry(editingEntry.id, {
+        project_id: projectId,
+        minutes,
+        description,
+      });
       if (success) {
         setLastSaveWasUpdate(true);
         setSaveSuccess(true);
@@ -171,6 +198,7 @@ export function HomePage(): React.JSX.Element {
       // --- Create new entry ---
       const success = await createEntry({
         employee_id: selectedEmployee.id,
+        project_id: projectId,
         entry_date: toISODateString(selectedDate),
         minutes,
         description,
@@ -187,10 +215,33 @@ export function HomePage(): React.JSX.Element {
     }
   };
 
-  const isAnySubmitting = isSubmitting || isUpdating;
-  const isFormDisabled = selectedEmployee === null || selectedDate === null || isAnySubmitting;
-  const canSave = !isFormDisabled && dailyLimitError === null;
-  const activeError = editingEntry !== null ? updateError : saveError;
+  const handleDelete = async (): Promise<void> => {
+    if (editingEntry === null) return;
+    const label = `${editingEntry.hours_display}${
+      editingEntry.description.length > 0 ? ` – ${editingEntry.description}` : ""
+    }`;
+    if (!window.confirm(`Delete this entry permanently?
+
+${label}`)) return;
+
+    const success = await deleteEntry(editingEntry.id);
+    if (success) {
+      setLastSaveWasUpdate(false);
+      setSaveSuccess(false);
+      setEditingEntry(null);
+      setMinutes(60);
+      setDescription("");
+      refetchCalendar();
+      refetchDay();
+      refetchWeek();
+    }
+  };
+
+  const isAnySubmitting = isSubmitting || isUpdating || isDeleting;
+  const isFormDisabled =
+    selectedEmployee === null || selectedDate === null || isAnySubmitting || hasNoProject;
+  const canSave = !isFormDisabled && dailyLimitError === null && projectId !== null;
+  const activeError = deleteError ?? (editingEntry !== null ? updateError : saveError);
 
   return (
     <main className="home-page">
@@ -248,6 +299,15 @@ export function HomePage(): React.JSX.Element {
                 })}
               </h2>
 
+              <ProjectSelect
+                id="entry-project"
+                projects={projects}
+                value={projectId}
+                onChange={setChosenProjectId}
+                isLoading={isProjectsLoading}
+                disabled={isFormDisabled}
+              />
+
               <TimePickerInput
                 value={minutes}
                 onChange={setMinutes}
@@ -302,6 +362,17 @@ export function HomePage(): React.JSX.Element {
                     disabled={isAnySubmitting}
                   >
                     Cancel
+                  </button>
+                )}
+
+                {editingEntry !== null && (
+                  <button
+                    type="button"
+                    className="home-page__delete-btn"
+                    onClick={() => void handleDelete()}
+                    disabled={isAnySubmitting}
+                  >
+                    Delete Entry
                   </button>
                 )}
               </div>

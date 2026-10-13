@@ -7,7 +7,7 @@
 //   - Dates with entries for a calendar month (for tileClassName colouring)
 //   - Day summary (all entries + total for a specific date)
 //   - Week summary (Mon–Sun totals for a given date)
-//   - Create and update entry mutations
+//   - Create, update and delete entry mutations
 // =============================================================================
 
 import { useCallback, useEffect, useState } from "react";
@@ -337,4 +337,45 @@ export function useUpdateEntry(): UseUpdateEntryResult {
   };
 
   return { updateEntry, isSubmitting, error };
+}
+
+// ---------------------------------------------------------------------------
+// Mutation: useDeleteEntry
+// ---------------------------------------------------------------------------
+
+interface UseDeleteEntryResult {
+  deleteEntry: (entryId: number) => Promise<boolean>;
+  isDeleting: boolean;
+  error: string | null;
+}
+
+/**
+ * Mutation hook for deleting a timesheet entry via DELETE /api/timesheets/{id}.
+ *
+ * @returns { deleteEntry, isDeleting, error }
+ *   deleteEntry returns true on success, false on failure.
+ */
+export function useDeleteEntry(): UseDeleteEntryResult {
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteEntry = async (entryId: number): Promise<boolean> => {
+    setIsDeleting(true);
+    setError(null);
+
+    const { error: apiError } = await apiClient.DELETE("/api/timesheets/{entry_id}", {
+      params: { path: { entry_id: entryId } },
+    });
+
+    setIsDeleting(false);
+
+    if (apiError !== undefined) {
+      setError(getApiErrorMessage(apiError, "Failed to delete entry."));
+      return false;
+    }
+
+    return true;
+  };
+
+  return { deleteEntry, isDeleting, error };
 }

@@ -125,3 +125,13 @@ class EmployeeListItem(BaseModel):
         examples=["Max Mustermann"],
     )
     is_active: bool = Field(description="Whether the employee is currently active")
+
+
+class EmployeeProject(BaseModel):
+    """A project an employee is allocated to (project picker of the entry form and export)."""
+
+    id: int = Field(description="Project ID")
+    name: str = Field(description="Project name")
+    customer_name: str = Field(description="Name of the project's customer")
+    purchase_number: str = Field(description="Order number (Auftragsnummer) of the project")
+    status: str = Field(description="'active', 'paused' or 'completed'")

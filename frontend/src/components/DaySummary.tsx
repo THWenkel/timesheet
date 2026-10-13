@@ -73,6 +73,7 @@ export function DaySummary({
           <thead>
             <tr>
               <th scope="col">Duration</th>
+              <th scope="col">Project</th>
               <th scope="col">Description</th>
             </tr>
           </thead>
@@ -100,6 +101,9 @@ export function DaySummary({
                   }
                 >
                   <td className="day-summary__duration">{entry.hours_display}</td>
+                  <td className="day-summary__project">
+                    {entry.project_name ?? <em>No project</em>}
+                  </td>
                   <td className="day-summary__description">
                     {entry.description.length > 0 ? entry.description : <em>No description</em>}
                   </td>
@@ -113,7 +117,7 @@ export function DaySummary({
                 <td>
                   <strong>{total_display}</strong>
                 </td>
-                <td>
+                <td colSpan={2}>
                   <strong>Total</strong>
                 </td>
               </tr>
